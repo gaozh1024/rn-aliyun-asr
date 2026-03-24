@@ -7,10 +7,9 @@ import type {
   ASRInitConfig,
   ASRDialogParams,
   ASREventData,
-  VadMode,
-  LogLevel,
+  ASREventCallback,
 } from './types';
-import { ASREvent } from './types';
+import { ASREvent, VadMode, LogLevel } from './types';
 
 const { AliyunASRModule } = NativeModules;
 const eventEmitter = new NativeEventEmitter(AliyunASRModule);

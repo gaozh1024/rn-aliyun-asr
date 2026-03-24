@@ -1,5 +1,5 @@
 // 类型导出
-export {
+export type {
   ASRInitConfig,
   ASRDialogParams,
   ASRResult,

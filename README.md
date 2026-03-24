@@ -25,6 +25,21 @@ yarn add @gaozh1024/rn-aliyun-asr
 cd ios && pod install
 ```
 
+### Android 额外配置
+
+**由于 Gradle 8.x 限制，需要手动在主项目中添加 AAR 依赖：**
+
+编辑 `android/app/build.gradle`：
+
+```gradle
+dependencies {
+    // ... 其他依赖
+    
+    // 阿里云语音识别 SDK AAR（必须手动添加）
+    implementation files("${rootDir}/../node_modules/@gaozh1024/rn-aliyun-asr/android/libs/nuisdk-release.aar")
+}
+```
+
 ### 权限配置
 
 **Android** - `android/app/src/main/AndroidManifest.xml`
@@ -99,8 +114,9 @@ await asr.startRecognition(VadMode.MODE_VAD);
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| [v1.0.2](./docs/05-版本记录/v1.0.2.md) | 2024-03-24 | Android AAR 依赖传递修复 |
-| [v1.0.1](./docs/05-版本记录/v1.0.1.md) | 2024-03-24 | Android Gradle 8.x 兼容性修复 |
+| [v1.0.3](./docs/05-版本记录/v1.0.3.md) | 2024-03-24 | Android AAR 手动配置方案 |
+| [v1.0.2](./docs/05-版本记录/v1.0.2.md) | 2024-03-24 | Android AAR 依赖传递修复（已废弃） |
+| [v1.0.1](./docs/05-版本记录/v1.0.1.md) | 2024-03-24 | Android Gradle 8.x 兼容性修复（已废弃） |
 | [v1.0.0](./docs/05-版本记录/v1.0.0.md) | 2024-03-24 | 首个正式版本 |
 
 ## 许可证

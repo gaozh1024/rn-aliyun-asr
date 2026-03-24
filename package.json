@@ -1,6 +1,6 @@
 {
   "name": "@gaozh1024/rn-aliyun-asr",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "React Native 阿里云实时语音识别 SDK",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -14,13 +14,17 @@
     "ios",
     "rn-aliyun-asr.podspec",
     "!android/build",
+    "!android/.gradle",
+    "!android/.gradle/**",
+    "!android/.idea",
+    "!android/.idea/**",
     "!ios/build",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__"
   ],
   "scripts": {
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "typescript": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "prepare": "bob build",
@@ -91,5 +95,19 @@
         }
       ]
     ]
+  },
+  "release-it": {
+    "git": {
+      "requireCleanWorkingDir": true,
+      "requireUpstream": false,
+      "commitMessage": "chore(release): v${version}",
+      "tagName": "v${version}"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": false
+    }
   }
 }

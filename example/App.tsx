@@ -9,12 +9,17 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
-import { AliyunASR, VadMode, ASREvent, LogLevel } from '@gaozh1024/rn-aliyun-asr';
+import {
+  AliyunASR,
+  VadMode,
+  ASREvent,
+  LogLevel,
+} from '@gaozh1024/rn-aliyun-asr';
 
 // 配置信息（请替换为实际的 appKey 和 token）
 const CONFIG = {
   appKey: '', // 请填写你的阿里云 AppKey
-  token: '',  // 请填写你的阿里云 Token
+  token: '', // 请填写你的阿里云 Token
 };
 
 const asr = AliyunASR.getInstance();
@@ -34,7 +39,7 @@ export default function App() {
       Alert.alert('错误', '请先填写 AppKey 和 Token');
       return;
     }
-    
+
     try {
       setStatus('初始化中...');
       await asr.initialize({
@@ -97,7 +102,7 @@ export default function App() {
     // 最终结果
     asr.on(ASREvent.ASR_RESULT, (data) => {
       if (data.result?.text) {
-        setResults(prev => [...prev, data.result!.text]);
+        setResults((prev) => [...prev, data.result!.text]);
         setCurrentText('');
       }
     });
@@ -125,7 +130,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>阿里云实时语音识别 Demo</Text>
-      
+
       {/* 配置输入 */}
       {!isInitialized && (
         <View style={styles.configContainer}>
@@ -163,7 +168,10 @@ export default function App() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={release}>
+            <TouchableOpacity
+              style={[styles.button, styles.dangerButton]}
+              onPress={release}
+            >
               <Text style={styles.buttonText}>释放 SDK</Text>
             </TouchableOpacity>
           </>

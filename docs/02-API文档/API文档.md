@@ -85,7 +85,7 @@ await asr.startRecognition(VadMode.MODE_VAD, {
 
 ##### `stopRecognition(): Promise<void>`
 
-停止语音识别，会返回最终结果。
+停止语音识别（不保证返回最终结果）。
 
 ```typescript
 await asr.stopRecognition();

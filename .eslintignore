@@ -1,0 +1,6 @@
+lib/
+docs/
+android/
+ios/
+node_modules/
+.eslintrc.js

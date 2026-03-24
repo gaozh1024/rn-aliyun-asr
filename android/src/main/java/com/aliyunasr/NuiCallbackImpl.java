@@ -16,8 +16,13 @@ public class NuiCallbackImpl implements INativeNuiCallback {
                                 String asrResult, boolean finish, int code, String allResponse) {
         WritableMap params = Arguments.createMap();
         params.putInt("event", event.ordinal());
+        params.putDouble("dialogId", (double) dialog);
         params.putInt("errorCode", code);
         params.putBoolean("isFinish", finish);
+
+        if (wuw != null && !wuw.isEmpty()) {
+            params.putString("wakeWord", wuw);
+        }
 
         // ASR 结果处理
         if (asrResult != null && !asrResult.isEmpty()) {

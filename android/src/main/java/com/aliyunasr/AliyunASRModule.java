@@ -32,7 +32,9 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
             callback = new NuiCallbackImpl(this);
 
             // 转换日志级别
-            Constants.LogLevel level = Constants.LogLevel.values()[logLevel];
+            Constants.LogLevel[] levels = Constants.LogLevel.values();
+            int safeLogLevel = Math.max(0, Math.min(logLevel, levels.length - 1));
+            Constants.LogLevel level = levels[safeLogLevel];
             
             // 初始化
             int result = nativeNui.nui_initialize(
@@ -174,4 +176,10 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
     ReactApplicationContext getReactContext() {
         return reactContext;
     }
+
+    @ReactMethod
+    public void addListener(String eventName) {}
+
+    @ReactMethod
+    public void removeListeners(double count) {}
 }

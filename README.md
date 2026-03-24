@@ -83,18 +83,18 @@ await asr.startRecognition(VadMode.MODE_VAD);
 文档已按功能分组，便于快速查找：
 
 ### 📚 入门指南
-- [项目说明](./docs/01-入门指南/项目说明.md) - 项目介绍、功能特性
-- [使用文档](./docs/01-入门指南/使用文档.md) - 详细使用指南、API 示例、常见问题
+- [项目说明](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/01-%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97/%E9%A1%B9%E7%9B%AE%E8%AF%B4%E6%98%8E.md) - 项目介绍、功能特性
+- [使用文档](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/01-%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97/%E4%BD%BF%E7%94%A8%E6%96%87%E6%A1%A3.md) - 详细使用指南、API 示例、常见问题
 
 ### 📖 API 参考
-- [API文档](./docs/02-API文档/API文档.md) - 完整 API 方法、类型定义、错误码
+- [API文档](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/02-API%E6%96%87%E6%A1%A3/API%E6%96%87%E6%A1%A3.md) - 完整 API 方法、类型定义、错误码
 
 ### 💻 开发指南（开发者）
-- [架构设计](./docs/03-开发指南/架构设计.md) - 整体架构设计
-- [原生层实现](./docs/03-开发指南/原生层实现.md) - Android/iOS 原生代码实现
+- [架构设计](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/03-%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1.md) - 整体架构设计
+- [原生层实现](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/03-%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/%E5%8E%9F%E7%94%9F%E5%B1%82%E5%AE%9E%E7%8E%B0.md) - Android/iOS 原生代码实现
 
 ### 👥 项目管理
-- [README-团队](./docs/04-团队管理/README-团队.md) - 团队总览
+- [README-团队](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/04-%E5%9B%A2%E9%98%9F%E7%AE%A1%E7%90%86/README-%E5%9B%A2%E9%98%9F.md) - 团队总览
 
 ## 快速导航
 
@@ -106,19 +106,20 @@ await asr.startRecognition(VadMode.MODE_VAD);
 
 ## 示例
 
-查看 [example/App.tsx](./example/App.tsx) 获取完整示例代码。
+查看 [example/App.tsx](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/example/App.tsx) 获取完整示例代码。
 
 ## 变更日志
 
-查看 [版本记录](./docs/05-版本记录) 了解每个版本的详细变更。
+查看 [版本记录](https://github.com/gaozh1024/rn-aliyun-asr/tree/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95) 了解每个版本的详细变更。
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| [v1.0.4](./docs/05-版本记录/v1.0.4.md) | 2024-03-24 | **修复 Android 代码与 AAR 不匹配** |
-| [v1.0.3](./docs/05-版本记录/v1.0.3.md) | 2024-03-24 | Android AAR 手动配置方案 |
-| [v1.0.2](./docs/05-版本记录/v1.0.2.md) | 2024-03-24 | Android AAR 依赖传递修复（已废弃） |
-| [v1.0.1](./docs/05-版本记录/v1.0.1.md) | 2024-03-24 | Android Gradle 8.x 兼容性修复（已废弃） |
-| [v1.0.0](./docs/05-版本记录/v1.0.0.md) | 2024-03-24 | 首个正式版本 |
+| [v1.0.5](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.5.md) | 2026-03-24 | stop 语义修正、事件字段对齐、发布流程增强 |
+| [v1.0.4](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.4.md) | 2024-03-24 | **修复 Android 代码与 AAR 不匹配** |
+| [v1.0.3](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.3.md) | 2024-03-24 | Android AAR 手动配置方案 |
+| [v1.0.2](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.2.md) | 2024-03-24 | Android AAR 依赖传递修复（已废弃） |
+| [v1.0.1](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.1.md) | 2024-03-24 | Android Gradle 8.x 兼容性修复（已废弃） |
+| [v1.0.0](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.0.md) | 2024-03-24 | 首个正式版本 |
 
 ## 许可证
 

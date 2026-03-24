@@ -165,6 +165,7 @@ export interface ASREventData {
   errorMessage?: string;
   wakeWord?: string;
   dialogId?: number;
+  isFinish?: boolean;
 }
 
 // 事件回调函数类型

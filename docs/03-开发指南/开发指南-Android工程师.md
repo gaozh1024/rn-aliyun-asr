@@ -93,9 +93,9 @@ git commit -m "feat: add AliyunASRPackage"
 ```java
 @ReactMethod
 public void initialize(String parameters, int logLevel, boolean saveLog, Promise promise) {
-    nuiSdk = new NuiSdk();
-    listener = new NuiSdkListenerImpl(this);
-    NuiResultCode result = nuiSdk.nui_initialize(parameters, listener, null, level, saveLog);
+    nativeNui = new NativeNui();
+    callback = new NuiCallbackImpl(this);
+    int result = nativeNui.nui_initialize(parameters, callback, null, level.ordinal(), saveLog);
     // ...
 }
 ```
@@ -104,8 +104,7 @@ public void initialize(String parameters, int logLevel, boolean saveLog, Promise
 ```java
 @ReactMethod
 public void startDialog(int vadMode, String dialogParams, Promise promise) {
-    NuiVadMode mode = NuiVadMode.values()[vadMode];
-    NuiResultCode result = nuiSdk.nui_dialog_start(mode, dialogParams);
+    int result = nativeNui.nui_dialog_start(vadMode, dialogParams);
     // ...
 }
 ```
@@ -114,13 +113,13 @@ public void startDialog(int vadMode, String dialogParams, Promise promise) {
 ```java
 @ReactMethod
 public void stopDialog(Promise promise) {
-    NuiResultCode result = nuiSdk.nui_dialog_cancel(false);
+    int result = nativeNui.nui_dialog_cancel(false);
     // ...
 }
 
 @ReactMethod
 public void cancelDialog(boolean force, Promise promise) {
-    NuiResultCode result = nuiSdk.nui_dialog_cancel(force);
+    int result = nativeNui.nui_dialog_cancel(force);
     // ...
 }
 ```
@@ -137,26 +136,31 @@ git commit -m "feat: add AliyunASRModule"
 
 ---
 
-### 15:00-17:00 NuiSdkListenerImpl.java
+### 15:00-17:00 NuiCallbackImpl.java
 
-**创建文件：** `android/src/main/java/com/aliyunasr/NuiSdkListenerImpl.java`
+**创建文件：** `android/src/main/java/com/aliyunasr/NuiCallbackImpl.java`
 
 **核心方法：**
 
 ```java
 @Override
-public void onEventCallback(NuiCallbackEvent event, long dialog, String wuw, 
+public void onEventCallback(Constants.NuiEvent event, int resultCode, long dialog, String wuw, 
                             String asrResult, boolean finish, int code, String allResponse) {
     WritableMap params = Arguments.createMap();
     params.putInt("event", event.ordinal());
-    params.putDouble("dialogId", dialog);
+    params.putDouble("dialogId", (double) dialog);
     params.putInt("errorCode", code);
+    params.putBoolean("isFinish", finish);
+    
+    if (wuw != null && !wuw.isEmpty()) {
+        params.putString("wakeWord", wuw);
+    }
     
     if (asrResult != null && !asrResult.isEmpty()) {
         WritableMap resultMap = Arguments.createMap();
         resultMap.putString("text", asrResult);
         resultMap.putBoolean("isFinal", 
-            event == NuiCallbackEvent.EVENT_ASR_RESULT);
+            event == Constants.NuiEvent.EVENT_ASR_RESULT || event == Constants.NuiEvent.EVENT_SENTENCE_END);
         params.putMap("result", resultMap);
     }
     
@@ -167,8 +171,8 @@ public void onEventCallback(NuiCallbackEvent event, long dialog, String wuw,
 **关键：** 事件名称必须是 `onASREvent`，与 TS 层对应
 
 ```bash
-git add android/src/main/java/com/aliyunasr/NuiSdkListenerImpl.java
-git commit -m "feat: add NuiSdkListenerImpl"
+git add android/src/main/java/com/aliyunasr/NuiCallbackImpl.java
+git commit -m "feat: add NuiCallbackImpl"
 ```
 
 ---
@@ -183,8 +187,10 @@ git commit -m "feat: add NuiSdkListenerImpl"
 ```gradle
 dependencies {
     implementation 'com.facebook.react:react-native:+'
-    // 直接引用 AAR 文件（兼容 Gradle 8.x）
-    implementation files('libs/nuisdk-release.aar')
+    // 重要：由于 Gradle 8.x 限制，library 模块无法传递 AAR 依赖
+    // 用户需要在主项目 android/app/build.gradle 中手动添加：
+    // implementation files("${rootDir}/../node_modules/@gaozh1024/rn-aliyun-asr/android/libs/nuisdk-release.aar")
+    compileOnly files('libs/nuisdk-release.aar')
 }
 
 repositories {

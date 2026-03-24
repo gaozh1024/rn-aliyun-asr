@@ -1,7 +1,7 @@
-import { 
-  NativeModules, 
+import {
+  NativeModules,
   NativeEventEmitter,
-  EmitterSubscription 
+  EmitterSubscription,
 } from 'react-native';
 import type {
   ASRInitConfig,
@@ -16,7 +16,7 @@ const eventEmitter = new NativeEventEmitter(AliyunASRModule);
 
 /**
  * 阿里云实时语音识别 SDK
- * 
+ *
  * 使用示例：
  * ```typescript
  * const asr = AliyunASR.getInstance();
@@ -52,11 +52,11 @@ export class AliyunASR {
     }
 
     const initParams = this.buildInitParams(config);
-    
+
     await AliyunASRModule.initialize(
       initParams,
       config.logLevel ?? LogLevel.INFO,
-      config.saveLog ?? false
+      config.saveLog ?? false,
     );
 
     this.isInitialized = true;
@@ -83,16 +83,16 @@ export class AliyunASR {
    */
   async startRecognition(
     vadMode: VadMode = VadMode.MODE_VAD,
-    params?: ASRDialogParams
+    params?: ASRDialogParams,
   ): Promise<void> {
     this.ensureInitialized();
-    
+
     const dialogParams = this.buildDialogParams(params);
     await AliyunASRModule.startDialog(vadMode, dialogParams);
   }
 
   /**
-   * 停止语音识别（会返回最终结果）
+   * 停止语音识别
    */
   async stopRecognition(): Promise<void> {
     this.ensureInitialized();
@@ -227,13 +227,15 @@ export class AliyunASR {
           result: nativeEvent.result,
           errorCode: nativeEvent.errorCode,
           errorMessage: nativeEvent.errorMessage,
+          wakeWord: nativeEvent.wakeWord,
           dialogId: nativeEvent.dialogId,
+          isFinish: nativeEvent.isFinish,
         };
 
         // 触发特定事件类型的回调
         const callbacks = this.eventCallbacks.get(nativeEvent.event.toString());
         if (callbacks) {
-          callbacks.forEach(cb => {
+          callbacks.forEach((cb) => {
             try {
               cb(eventData);
             } catch (e) {
@@ -241,14 +243,14 @@ export class AliyunASR {
             }
           });
         }
-      }
+      },
     );
 
     this.subscriptions.push(subscription);
   }
 
   private removeEventListeners(): void {
-    this.subscriptions.forEach(sub => sub.remove());
+    this.subscriptions.forEach((sub) => sub.remove());
     this.subscriptions = [];
     this.eventCallbacks.clear();
   }

@@ -6,6 +6,4 @@
 
 @interface AliyunASR : RCTEventEmitter <RCTBridgeModule, NeoNuiSdkDelegate>
 
-+ (instancetype)sharedInstance;
-
 @end

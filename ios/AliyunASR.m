@@ -12,15 +12,6 @@
 
 RCT_EXPORT_MODULE(AliyunASRModule);
 
-+ (instancetype)sharedInstance {
-    static AliyunASR *instance = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        instance = [[self alloc] init];
-    });
-    return instance;
-}
-
 - (NSArray<NSString *> *)supportedEvents {
     return @[@"onASREvent", @"onASRAudioState"];
 }
@@ -182,6 +173,10 @@ RCT_EXPORT_METHOD(getParam:(NSString *)key
         @"errorCode": @(code),
         @"isFinish": @(finish)
     } mutableCopy];
+
+    if (wuw != NULL) {
+        eventData[@"wakeWord"] = [NSString stringWithUTF8String:wuw];
+    }
     
     if (asr_result != NULL) {
         NSString *resultText = [NSString stringWithUTF8String:asr_result];

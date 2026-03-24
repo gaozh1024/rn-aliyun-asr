@@ -19,7 +19,6 @@ git checkout -b feat/ios-module
 
 # 3. 创建目录
 mkdir -p ios/Frameworks
-mkdir -p ios/Resources
 ```
 
 ---
@@ -32,24 +31,15 @@ mkdir -p ios/Resources
 # 复制 Framework
 cp -r docs/ios/Release/nuisdk.framework ios/Frameworks/
 
-# 复制资源文件（仅 ASR 必需）
-cp docs/ios/resources/nui.json ios/Resources/
-cp docs/ios/resources/cei.json ios/Resources/
-cp docs/ios/resources/vad.bin ios/Resources/
-
 # 确认文件
 ls -la ios/Frameworks/
-ls -la ios/Resources/
 ```
 
 **检查清单：**
 - [ ] `ios/Frameworks/nuisdk.framework` 存在
-- [ ] `ios/Resources/nui.json` 存在
-- [ ] `ios/Resources/cei.json` 存在
-- [ ] `ios/Resources/vad.bin` 存在
 
 ```bash
-git add ios/Frameworks/ ios/Resources/
+git add ios/Frameworks/
 git commit -m "chore: add iOS SDK and assets"
 ```
 
@@ -67,8 +57,6 @@ git commit -m "chore: add iOS SDK and assets"
 #import <nuisdk/NeoNui.h>
 
 @interface AliyunASR : RCTEventEmitter <RCTBridgeModule, NeoNuiSdkDelegate>
-
-+ (instancetype)sharedInstance;
 
 @end
 ```
@@ -96,19 +84,7 @@ git commit -m "feat: add AliyunASR.h"
 RCT_EXPORT_MODULE(AliyunASRModule);
 ```
 
-2. **单例**
-```objc
-+ (instancetype)sharedInstance {
-    static AliyunASR *instance = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        instance = [[self alloc] init];
-    });
-    return instance;
-}
-```
-
-3. **initialize**
+2. **initialize**
 ```objc
 RCT_EXPORT_METHOD(initialize:(NSString *)parameters
                   logLevel:(NSInteger)logLevel
@@ -260,7 +236,7 @@ s.vendored_frameworks = 'ios/Frameworks/nuisdk.framework'
 
 **Q4: 资源文件找不到？**
 
-需要在 Xcode 中将 `ios/Resources/` 添加到：
+需要在 Xcode 中确认 `Resources.bundle`（随 `nuisdk.framework`）已添加到：
 - Build Phases -> Copy Bundle Resources
 
 ---
@@ -274,7 +250,7 @@ s.vendored_frameworks = 'ios/Frameworks/nuisdk.framework'
 3. Build Phases
 4. Copy Bundle Resources
 5. 点击 `+`
-6. 添加 `nui.json`, `cei.json`, `vad.bin`
+6. 确认 `Resources.bundle`（随 `nuisdk.framework`）已被正确拷贝到 App Bundle
 
 ### Info.plist 权限
 
@@ -309,7 +285,7 @@ NSLog(@"AliyunASR: onNuiEventCallback: %d", nuiEvent);
 ## 交付标准
 
 - [ ] Framework 已正确引用
-- [ ] 资源文件已添加到 Bundle
+- [ ] Resources.bundle 已随 Framework 集成
 - [ ] 所有方法导出正确
 - [ ] 事件转发测试通过
 - [ ] 代码通过 PL 审核

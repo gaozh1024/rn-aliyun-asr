@@ -64,7 +64,8 @@ await asr.release();
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| vadMode | VadMode | 否 | VAD 模式，默认 MODE_VAD |
+| vadMode | VadMode | 否 | VAD 模式，默认 MODE_P2T |
+| params.token | string | 否 | 启动识别时临时刷新 Token |
 | params.vocabularyId | string | 否 | 热词词表 ID |
 | params.maxSentenceSilence | number | 否 | 句尾静默时长（毫秒） |
 
@@ -77,15 +78,16 @@ await asr.startRecognition();
 // 使用 P2T 模式
 await asr.startRecognition(VadMode.MODE_P2T);
 
-// 带热词
-await asr.startRecognition(VadMode.MODE_VAD, {
+// 带热词并刷新 token
+await asr.startRecognition(VadMode.MODE_P2T, {
+  token: 'your-refresh-token',
   vocabularyId: 'your-vocabulary-id',
 });
 ```
 
 ##### `stopRecognition(): Promise<void>`
 
-停止语音识别（不保证返回最终结果）。
+停止语音识别（会等待最终结果）。
 
 ```typescript
 await asr.stopRecognition();
@@ -99,14 +101,14 @@ await asr.stopRecognition();
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| force | boolean | 否 | 是否强制取消，默认 false |
+| force | boolean | 否 | 是否强制取消，默认 true |
 
 ```typescript
-// 普通取消（可能触发回调）
+// 强制取消（不等待最终结果）
 await asr.cancelRecognition();
 
-// 强制取消（不触发回调）
-await asr.cancelRecognition(true);
+// 非强制取消（等待最终结果）
+await asr.cancelRecognition(false);
 ```
 
 ##### `setParam(key: string, value: string): Promise<void>`
@@ -115,6 +117,19 @@ await asr.cancelRecognition(true);
 
 ```typescript
 await asr.setParam('vocabulary_id', 'your-vocabulary-id');
+```
+
+##### `setParams(params: Record<string, unknown>): Promise<void>`
+
+批量设置参数。
+
+```typescript
+await asr.setParams({
+  service_type: 4,
+  nls_config: {
+    enable_intermediate_result: true,
+  },
+});
 ```
 
 ##### `getParam(key: string): Promise<string>`
@@ -165,8 +180,8 @@ VAD（语音活动检测）模式。
 
 | 值 | 名称 | 说明 |
 |----|------|------|
-| 0 | MODE_VAD | 纯 VAD 模式，自动检测语音开始和结束（默认） |
-| 1 | MODE_P2T | 按住说话模式（Push to Talk） |
+| 0 | MODE_VAD | 纯 VAD 模式，自动检测语音开始和结束 |
+| 1 | MODE_P2T | 按住说话模式（Push to Talk，默认） |
 | 5 | MODE_AUTO_CONTINUAL | 自动连续识别 |
 
 ### `ServiceType`
@@ -358,7 +373,7 @@ function ASRScreen() {
 
   const start = () => {
     setIsRecording(true);
-    asr.startRecognition(VadMode.MODE_VAD);
+    asr.startRecognition(VadMode.MODE_P2T);
   };
 
   const stop = () => {

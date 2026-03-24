@@ -37,7 +37,7 @@
 | TC010 | 开始识别 | 调用 startRecognition | ASR_STARTED 事件 |
 | TC011 | 临时结果 | 说话中 | ASR_PARTIAL_RESULT 事件 |
 | TC012 | 最终结果 | 说完一句话 | ASR_RESULT 事件 |
-| TC013 | 停止识别 | 调用 stopRecognition | 停止当前识别（不保证返回最终结果） |
+| TC013 | 停止识别 | 调用 stopRecognition | 停止当前识别并返回最终结果 |
 | TC014 | 取消识别 | 调用 cancelRecognition | 不返回结果 |
 
 ### 3. 事件测试

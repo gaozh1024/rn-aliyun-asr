@@ -14,6 +14,29 @@ buildscript {
 
 apply plugin: 'com.android.library'
 
+def nuiAarFile = file('libs/nuisdk-release.aar')
+def nuiExtractDir = file("$buildDir/generated/nuisdk")
+def nuiClassesJar = file("$nuiExtractDir/classes.jar")
+def nuiJniDir = file("$nuiExtractDir/jni")
+
+task extractNuiClasses(type: Copy) {
+    from(zipTree(nuiAarFile)) {
+        include 'classes.jar'
+    }
+    into nuiExtractDir
+}
+
+task extractNuiJni(type: Copy) {
+    from(zipTree(nuiAarFile)) {
+        include 'jni/**/*.so'
+        eachFile { details ->
+            details.path = details.path.replaceFirst(/^jni\//, '')
+        }
+        includeEmptyDirs = false
+    }
+    into nuiJniDir
+}
+
 android {
     compileSdkVersion safeExtGet('compileSdkVersion', 33)
     buildToolsVersion safeExtGet('buildToolsVersion', '33.0.0')
@@ -39,6 +62,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs += [nuiJniDir]
+        }
+    }
 }
 
 repositories {
@@ -48,10 +77,8 @@ repositories {
 
 dependencies {
     implementation 'com.facebook.react:react-native:+'
-    
-    // 阿里云 NUI SDK
-    // 重要：由于 Gradle 8.x 限制，library 模块无法传递 AAR 依赖
-    // 用户需要在主项目 android/app/build.gradle 中手动添加：
-    // implementation files("${rootDir}/../node_modules/@gaozh1024/rn-aliyun-asr/android/libs/nuisdk-release.aar")
-    compileOnly files('libs/nuisdk-release.aar')
+
+    compileOnly files(nuiClassesJar)
 }
+
+preBuild.dependsOn(extractNuiClasses, extractNuiJni)

@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.license      = package['license']
   s.author       = { "author" => "gaozh1024" }
   s.platform     = :ios, "11.0"
-  s.source       = { :git => "https://github.com/gaozh1024/rn-aliyun-asr.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/gaozh1024/rn-aliyun-asr.git", :tag => "v#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m}"
   

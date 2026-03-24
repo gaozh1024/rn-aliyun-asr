@@ -12,50 +12,63 @@ public class NuiCallbackImpl implements INativeNuiCallback {
     }
 
     @Override
-    public void onEventCallback(Constants.NuiEvent event, int resultCode, long dialog, String wuw, 
-                                String asrResult, boolean finish, int code, String allResponse) {
+    public void onNuiEventCallback(
+            Constants.NuiEvent event,
+            int resultCode,
+            int dialogId,
+            KwsResult kwsResult,
+            AsrResult asrResult
+    ) {
         WritableMap params = Arguments.createMap();
         params.putInt("event", event.ordinal());
-        params.putDouble("dialogId", (double) dialog);
-        params.putInt("errorCode", code);
-        params.putBoolean("isFinish", finish);
+        params.putInt("dialogId", dialogId);
 
-        if (wuw != null && !wuw.isEmpty()) {
-            params.putString("wakeWord", wuw);
+        if (kwsResult != null && kwsResult.kws != null && !kwsResult.kws.isEmpty()) {
+            params.putString("wakeWord", kwsResult.kws);
         }
 
-        // ASR 结果处理
-        if (asrResult != null && !asrResult.isEmpty()) {
+        int errorCode = resultCode;
+
+        if (asrResult != null) {
+            errorCode = asrResult.resultCode;
+            params.putBoolean("isFinish", asrResult.finish);
+
             WritableMap resultMap = Arguments.createMap();
-            resultMap.putString("text", asrResult);
-            // 判断是否为最终结果
-            boolean isFinal = (event == Constants.NuiEvent.EVENT_ASR_RESULT || 
-                              event == Constants.NuiEvent.EVENT_SENTENCE_END);
+            resultMap.putString("text", asrResult.asrResult);
+            boolean isFinal = event == Constants.NuiEvent.EVENT_ASR_RESULT
+                    || event == Constants.NuiEvent.EVENT_SENTENCE_END
+                    || asrResult.finish;
             resultMap.putBoolean("isFinal", isFinal);
             params.putMap("result", resultMap);
         }
 
-        // 错误信息
-        if (code != 0) {
-            params.putString("errorMessage", getErrorMessage(code));
+        params.putInt("errorCode", errorCode);
+
+        if (errorCode != 0) {
+            params.putString("errorMessage", getErrorMessage(errorCode));
         }
 
         module.sendEvent("onASREvent", params);
     }
 
     @Override
-    public int onAudioDataCallback(byte[] buffer, int len) {
-        // 音频数据回调，返回 0 表示成功
+    public int onNuiNeedAudioData(byte[] buffer, int len) {
         return 0;
     }
 
     @Override
-    public void onAudioStateChanged(Constants.AudioState state) {
+    public void onNuiAudioStateChanged(Constants.AudioState state) {
         WritableMap params = Arguments.createMap();
         params.putString("type", "audioState");
         params.putInt("state", state.ordinal());
         module.sendEvent("onASRAudioState", params);
     }
+
+    @Override
+    public void onNuiAudioRMSChanged(float rms) {}
+
+    @Override
+    public void onNuiVprEventCallback(Constants.NuiVprEvent event) {}
 
     private String getErrorMessage(int code) {
         switch (code) {

@@ -27,18 +27,7 @@ cd ios && pod install
 
 ### Android 额外配置
 
-**由于 Gradle 8.x 限制，需要手动在主项目中添加 AAR 依赖：**
-
-编辑 `android/app/build.gradle`：
-
-```gradle
-dependencies {
-    // ... 其他依赖
-    
-    // 阿里云语音识别 SDK AAR（必须手动添加）
-    implementation files("${rootDir}/../node_modules/@gaozh1024/rn-aliyun-asr/android/libs/nuisdk-release.aar")
-}
-```
+Android 无需额外手动添加 AAR 依赖，框架会在构建时自动从 `nuisdk-release.aar` 解压 `classes.jar` 与 JNI 库。
 
 ### 权限配置
 
@@ -75,7 +64,7 @@ asr.on(ASREvent.ASR_RESULT, (data) => {
 });
 
 // 开始识别
-await asr.startRecognition(VadMode.MODE_VAD);
+await asr.startRecognition(VadMode.MODE_P2T);
 ```
 
 ## 文档
@@ -114,7 +103,7 @@ await asr.startRecognition(VadMode.MODE_VAD);
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| [v1.0.5](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.5.md) | 2026-03-24 | stop 语义修正、事件字段对齐、发布流程增强 |
+| [v1.0.5](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.5.md) | 2026-03-24 | Android NativeNui 对齐、P2T 默认、iOS 线程修正 |
 | [v1.0.4](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.4.md) | 2024-03-24 | **修复 Android 代码与 AAR 不匹配** |
 | [v1.0.3](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.3.md) | 2024-03-24 | Android AAR 手动配置方案 |
 | [v1.0.2](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.2.md) | 2024-03-24 | Android AAR 依赖传递修复（已废弃） |

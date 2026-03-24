@@ -12,6 +12,15 @@
 
 RCT_EXPORT_MODULE(AliyunASRModule);
 
+- (dispatch_queue_t)methodQueue {
+    static dispatch_queue_t queue;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        queue = dispatch_queue_create("com.aliyunasr.sdk", DISPATCH_QUEUE_SERIAL);
+    });
+    return queue;
+}
+
 - (NSArray<NSString *> *)supportedEvents {
     return @[@"onASREvent", @"onASRAudioState"];
 }
@@ -29,136 +38,139 @@ RCT_EXPORT_METHOD(initialize:(NSString *)parameters
                   saveLog:(BOOL)saveLog
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        @try {
-            self.nuiSdk = [NeoNui get_instance];
-            self.nuiSdk.delegate = self;
-            
-            NuiSdkLogLevel level = (NuiSdkLogLevel)logLevel;
-            int result = [self.nuiSdk nui_initialize:[parameters UTF8String]
-                                            logLevel:level
-                                             saveLog:saveLog];
-            
-            if (result == SUCCESS) {
-                resolve(@(YES));
-            } else {
-                reject(@"INIT_ERROR", [NSString stringWithFormat:@"初始化失败，错误码: %d", result], nil);
-            }
-        } @catch (NSException *exception) {
-            reject(@"INIT_EXCEPTION", exception.reason, nil);
+    @try {
+        self.nuiSdk = [NeoNui get_instance];
+        self.nuiSdk.delegate = self;
+        
+        NuiSdkLogLevel level = (NuiSdkLogLevel)logLevel;
+        int result = [self.nuiSdk nui_initialize:[parameters UTF8String]
+                                        logLevel:level
+                                         saveLog:saveLog];
+        
+        if (result == SUCCESS) {
+            resolve(@(YES));
+        } else {
+            reject(@"INIT_ERROR", [NSString stringWithFormat:@"初始化失败，错误码: %d", result], nil);
         }
-    });
+    } @catch (NSException *exception) {
+        reject(@"INIT_EXCEPTION", exception.reason, nil);
+    }
 }
 
 RCT_EXPORT_METHOD(release:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (self.nuiSdk) {
-            int result = [self.nuiSdk nui_release];
-            self.nuiSdk = nil;
-            
-            if (result == SUCCESS) {
-                resolve(@(YES));
-            } else {
-                reject(@"RELEASE_ERROR", [NSString stringWithFormat:@"释放失败，错误码: %d", result], nil);
-            }
-        } else {
+    if (self.nuiSdk) {
+        int result = [self.nuiSdk nui_release];
+        self.nuiSdk = nil;
+        
+        if (result == SUCCESS) {
             resolve(@(YES));
+        } else {
+            reject(@"RELEASE_ERROR", [NSString stringWithFormat:@"释放失败，错误码: %d", result], nil);
         }
-    });
+    } else {
+        resolve(@(YES));
+    }
 }
 
 RCT_EXPORT_METHOD(startDialog:(NSInteger)vadMode
                   dialogParams:(NSString *)dialogParams
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self.nuiSdk) {
-            reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
-            return;
-        }
-        
-        NuiVadMode mode = (NuiVadMode)vadMode;
-        int result = [self.nuiSdk nui_dialog_start:mode
-                                       dialogParam:[dialogParams UTF8String]];
-        
-        if (result == SUCCESS) {
-            resolve(@(YES));
-        } else {
-            reject(@"START_ERROR", [NSString stringWithFormat:@"开始识别失败，错误码: %d", result], nil);
-        }
-    });
+    if (!self.nuiSdk) {
+        reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
+        return;
+    }
+    
+    NuiVadMode mode = (NuiVadMode)vadMode;
+    int result = [self.nuiSdk nui_dialog_start:mode
+                                   dialogParam:[dialogParams UTF8String]];
+    
+    if (result == SUCCESS) {
+        resolve(@(YES));
+    } else {
+        reject(@"START_ERROR", [NSString stringWithFormat:@"开始识别失败，错误码: %d", result], nil);
+    }
 }
 
 RCT_EXPORT_METHOD(stopDialog:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self.nuiSdk) {
-            reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
-            return;
-        }
-        
-        int result = [self.nuiSdk nui_dialog_cancel:NO];
-        
-        if (result == SUCCESS) {
-            resolve(@(YES));
-        } else {
-            reject(@"STOP_ERROR", [NSString stringWithFormat:@"停止识别失败，错误码: %d", result], nil);
-        }
-    });
+    if (!self.nuiSdk) {
+        reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
+        return;
+    }
+    
+    int result = [self.nuiSdk nui_dialog_cancel:NO];
+    
+    if (result == SUCCESS) {
+        resolve(@(YES));
+    } else {
+        reject(@"STOP_ERROR", [NSString stringWithFormat:@"停止识别失败，错误码: %d", result], nil);
+    }
 }
 
 RCT_EXPORT_METHOD(cancelDialog:(BOOL)force
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self.nuiSdk) {
-            reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
-            return;
-        }
-        
-        int result = [self.nuiSdk nui_dialog_cancel:force];
-        
-        if (result == SUCCESS) {
-            resolve(@(YES));
-        } else {
-            reject(@"CANCEL_ERROR", [NSString stringWithFormat:@"取消识别失败，错误码: %d", result], nil);
-        }
-    });
+    if (!self.nuiSdk) {
+        reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
+        return;
+    }
+    
+    int result = [self.nuiSdk nui_dialog_cancel:force];
+    
+    if (result == SUCCESS) {
+        resolve(@(YES));
+    } else {
+        reject(@"CANCEL_ERROR", [NSString stringWithFormat:@"取消识别失败，错误码: %d", result], nil);
+    }
 }
 
 RCT_EXPORT_METHOD(setParam:(NSString *)key
                   value:(NSString *)value
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self.nuiSdk) {
-            reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
-            return;
-        }
-        
-        int result = [self.nuiSdk nui_set_param:[key UTF8String] Value:[value UTF8String]];
-        
-        if (result == SUCCESS) {
-            resolve(@(YES));
-        } else {
-            reject(@"SET_PARAM_ERROR", [NSString stringWithFormat:@"设置参数失败，错误码: %d", result], nil);
-        }
-    });
+    if (!self.nuiSdk) {
+        reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
+        return;
+    }
+    
+    int result = [self.nuiSdk nui_set_param:[key UTF8String] Value:[value UTF8String]];
+    
+    if (result == SUCCESS) {
+        resolve(@(YES));
+    } else {
+        reject(@"SET_PARAM_ERROR", [NSString stringWithFormat:@"设置参数失败，错误码: %d", result], nil);
+    }
+}
+
+RCT_EXPORT_METHOD(setParams:(NSString *)params
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+    if (!self.nuiSdk) {
+        reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
+        return;
+    }
+    
+    int result = [self.nuiSdk nui_set_params:[params UTF8String]];
+    
+    if (result == SUCCESS) {
+        resolve(@(YES));
+    } else {
+        reject(@"SET_PARAMS_ERROR", [NSString stringWithFormat:@"批量设置参数失败，错误码: %d", result], nil);
+    }
 }
 
 RCT_EXPORT_METHOD(getParam:(NSString *)key
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self.nuiSdk) {
-            reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
-            return;
-        }
-        
-        const char *value = [self.nuiSdk nui_get_param:[key UTF8String]];
-        resolve([NSString stringWithUTF8String:value]);
-    });
+    if (!self.nuiSdk) {
+        reject(@"NOT_INITIALIZED", @"SDK 未初始化", nil);
+        return;
+    }
+    
+    const char *value = [self.nuiSdk nui_get_param:[key UTF8String]];
+    resolve([NSString stringWithUTF8String:value]);
 }
 
 - (void)onNuiEventCallback:(NuiCallbackEvent)nuiEvent

@@ -59,8 +59,9 @@ export class AliyunASR {
       config.saveLog ?? false,
     );
 
-    this.isInitialized = true;
     this.setupEventListeners();
+    await AliyunASRModule.setParams(this.buildRecognitionParams(config));
+    this.isInitialized = true;
   }
 
   /**
@@ -78,11 +79,11 @@ export class AliyunASR {
 
   /**
    * 开始语音识别
-   * @param vadMode VAD 模式，默认 MODE_VAD
+   * @param vadMode VAD 模式，默认 MODE_P2T
    * @param params 识别参数（可选）
    */
   async startRecognition(
-    vadMode: VadMode = VadMode.MODE_VAD,
+    vadMode: VadMode = VadMode.MODE_P2T,
     params?: ASRDialogParams,
   ): Promise<void> {
     this.ensureInitialized();
@@ -92,7 +93,7 @@ export class AliyunASR {
   }
 
   /**
-   * 停止语音识别
+   * 停止语音识别（会返回最终结果）
    */
   async stopRecognition(): Promise<void> {
     this.ensureInitialized();
@@ -101,9 +102,9 @@ export class AliyunASR {
 
   /**
    * 取消语音识别（不会返回结果）
-   * @param force 是否强制取消，默认 false
+   * @param force 是否强制取消，默认 true
    */
-  async cancelRecognition(force: boolean = false): Promise<void> {
+  async cancelRecognition(force: boolean = true): Promise<void> {
     this.ensureInitialized();
     await AliyunASRModule.cancelDialog(force);
   }
@@ -116,6 +117,15 @@ export class AliyunASR {
   async setParam(key: string, value: string): Promise<void> {
     this.ensureInitialized();
     await AliyunASRModule.setParam(key, value);
+  }
+
+  /**
+   * 批量设置参数
+   * @param params 参数对象
+   */
+  async setParams(params: Record<string, unknown>): Promise<void> {
+    this.ensureInitialized();
+    await AliyunASRModule.setParams(JSON.stringify(params));
   }
 
   /**
@@ -207,6 +217,10 @@ export class AliyunASR {
 
     const dialogParams: any = {};
 
+    if (params.token) {
+      dialogParams.token = params.token;
+    }
+
     if (params.vocabularyId) {
       dialogParams.vocabulary_id = params.vocabularyId;
     }
@@ -216,6 +230,17 @@ export class AliyunASR {
     }
 
     return JSON.stringify(dialogParams);
+  }
+
+  private buildRecognitionParams(config: ASRInitConfig): string {
+    return JSON.stringify({
+      service_type: 4,
+      nls_config: {
+        enable_intermediate_result: true,
+        sample_rate: config.sampleRate || 16000,
+        sr_format: config.format || 'opus',
+      },
+    });
   }
 
   private setupEventListeners(): void {

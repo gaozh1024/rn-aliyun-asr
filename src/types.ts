@@ -145,6 +145,7 @@ export interface ASRInitConfig {
 
 // 识别参数
 export interface ASRDialogParams {
+  token?: string;
   vocabularyId?: string;
   maxSentenceSilence?: number;
 }

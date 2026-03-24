@@ -28,22 +28,14 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void initialize(String parameters, int logLevel, boolean saveLog, Promise promise) {
         try {
-            nativeNui = new NativeNui();
+            nativeNui = NativeNui.GetInstance();
             callback = new NuiCallbackImpl(this);
 
-            // 转换日志级别
             Constants.LogLevel[] levels = Constants.LogLevel.values();
             int safeLogLevel = Math.max(0, Math.min(logLevel, levels.length - 1));
             Constants.LogLevel level = levels[safeLogLevel];
-            
-            // 初始化
-            int result = nativeNui.nui_initialize(
-                parameters, 
-                callback, 
-                null,  // 外部音频实例（不使用）
-                level.ordinal(), 
-                saveLog
-            );
+
+            int result = nativeNui.initialize(callback, parameters, level, saveLog);
 
             if (result == 0) {
                 promise.resolve(null);
@@ -58,7 +50,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void release(Promise promise) {
         if (nativeNui != null) {
-            int result = nativeNui.nui_release();
+            int result = nativeNui.release();
             nativeNui = null;
             callback = null;
             
@@ -80,7 +72,9 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            int result = nativeNui.nui_dialog_start(vadMode, dialogParams);
+            Constants.VadMode[] vadModes = Constants.VadMode.values();
+            int safeVadMode = Math.max(0, Math.min(vadMode, vadModes.length - 1));
+            int result = nativeNui.startDialog(vadModes[safeVadMode], dialogParams);
 
             if (result == 0) {
                 promise.resolve(null);
@@ -100,7 +94,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            int result = nativeNui.nui_dialog_cancel(false);
+            int result = nativeNui.stopDialog();
 
             if (result == 0) {
                 promise.resolve(null);
@@ -120,7 +114,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            int result = nativeNui.nui_dialog_cancel(force);
+            int result = nativeNui.cancelDialog();
 
             if (result == 0) {
                 promise.resolve(null);
@@ -140,7 +134,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            int result = nativeNui.nui_set_param(key, value);
+            int result = nativeNui.setParam(key, value);
 
             if (result == 0) {
                 promise.resolve(null);
@@ -153,6 +147,26 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void setParams(String params, Promise promise) {
+        if (nativeNui == null) {
+            promise.reject("NOT_INITIALIZED", "SDK 未初始化");
+            return;
+        }
+
+        try {
+            int result = nativeNui.setParams(params);
+
+            if (result == 0) {
+                promise.resolve(null);
+            } else {
+                promise.reject("SET_PARAMS_ERROR", "批量设置参数失败，错误码: " + result);
+            }
+        } catch (Exception e) {
+            promise.reject("SET_PARAMS_EXCEPTION", e);
+        }
+    }
+
+    @ReactMethod
     public void getParam(String key, Promise promise) {
         if (nativeNui == null) {
             promise.reject("NOT_INITIALIZED", "SDK 未初始化");
@@ -160,7 +174,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            String value = nativeNui.nui_get_param(key);
+            String value = nativeNui.getParam(key);
             promise.resolve(value);
         } catch (Exception e) {
             promise.reject("GET_PARAM_EXCEPTION", e);

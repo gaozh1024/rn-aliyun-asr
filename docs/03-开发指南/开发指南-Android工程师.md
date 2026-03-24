@@ -93,9 +93,9 @@ git commit -m "feat: add AliyunASRPackage"
 ```java
 @ReactMethod
 public void initialize(String parameters, int logLevel, boolean saveLog, Promise promise) {
-    nativeNui = new NativeNui();
+    nativeNui = NativeNui.GetInstance();
     callback = new NuiCallbackImpl(this);
-    int result = nativeNui.nui_initialize(parameters, callback, null, level.ordinal(), saveLog);
+    int result = nativeNui.initialize(callback, parameters, level, saveLog);
     // ...
 }
 ```
@@ -104,7 +104,7 @@ public void initialize(String parameters, int logLevel, boolean saveLog, Promise
 ```java
 @ReactMethod
 public void startDialog(int vadMode, String dialogParams, Promise promise) {
-    int result = nativeNui.nui_dialog_start(vadMode, dialogParams);
+    int result = nativeNui.startDialog(Constants.VadMode.values()[vadMode], dialogParams);
     // ...
 }
 ```
@@ -113,13 +113,13 @@ public void startDialog(int vadMode, String dialogParams, Promise promise) {
 ```java
 @ReactMethod
 public void stopDialog(Promise promise) {
-    int result = nativeNui.nui_dialog_cancel(false);
+    int result = nativeNui.stopDialog();
     // ...
 }
 
 @ReactMethod
 public void cancelDialog(boolean force, Promise promise) {
-    int result = nativeNui.nui_dialog_cancel(force);
+    int result = nativeNui.cancelDialog();
     // ...
 }
 ```
@@ -144,23 +144,23 @@ git commit -m "feat: add AliyunASRModule"
 
 ```java
 @Override
-public void onEventCallback(Constants.NuiEvent event, int resultCode, long dialog, String wuw, 
-                            String asrResult, boolean finish, int code, String allResponse) {
+public void onNuiEventCallback(Constants.NuiEvent event, int resultCode, int dialogId,
+                               KwsResult kwsResult, AsrResult asrResult) {
     WritableMap params = Arguments.createMap();
     params.putInt("event", event.ordinal());
-    params.putDouble("dialogId", (double) dialog);
-    params.putInt("errorCode", code);
-    params.putBoolean("isFinish", finish);
+    params.putInt("dialogId", dialogId);
     
-    if (wuw != null && !wuw.isEmpty()) {
-        params.putString("wakeWord", wuw);
+    if (kwsResult != null && kwsResult.kws != null) {
+        params.putString("wakeWord", kwsResult.kws);
     }
     
-    if (asrResult != null && !asrResult.isEmpty()) {
+    if (asrResult != null) {
+        params.putInt("errorCode", asrResult.resultCode);
+        params.putBoolean("isFinish", asrResult.finish);
         WritableMap resultMap = Arguments.createMap();
-        resultMap.putString("text", asrResult);
+        resultMap.putString("text", asrResult.asrResult);
         resultMap.putBoolean("isFinal", 
-            event == Constants.NuiEvent.EVENT_ASR_RESULT || event == Constants.NuiEvent.EVENT_SENTENCE_END);
+            event == Constants.NuiEvent.EVENT_ASR_RESULT || event == Constants.NuiEvent.EVENT_SENTENCE_END || asrResult.finish);
         params.putMap("result", resultMap);
     }
     
@@ -185,12 +185,26 @@ git commit -m "feat: add NuiCallbackImpl"
 
 **关键点：**
 ```gradle
+def nuiAarFile = file('libs/nuisdk-release.aar')
+def nuiExtractDir = file("$buildDir/generated/nuisdk")
+def nuiClassesJar = file("$nuiExtractDir/classes.jar")
+def nuiJniDir = file("$buildDir/generated/nuisdk/jni")
+
+task extractNuiClasses(type: Copy) {
+    from(zipTree(nuiAarFile)) { include 'classes.jar' }
+    into nuiExtractDir
+}
+
+task extractNuiJni(type: Copy) {
+    from(zipTree(nuiAarFile)) {
+        include 'jni/**/*.so'
+    }
+    into nuiJniDir
+}
+
 dependencies {
     implementation 'com.facebook.react:react-native:+'
-    // 重要：由于 Gradle 8.x 限制，library 模块无法传递 AAR 依赖
-    // 用户需要在主项目 android/app/build.gradle 中手动添加：
-    // implementation files("${rootDir}/../node_modules/@gaozh1024/rn-aliyun-asr/android/libs/nuisdk-release.aar")
-    compileOnly files('libs/nuisdk-release.aar')
+    compileOnly files(nuiClassesJar)
 }
 
 repositories {

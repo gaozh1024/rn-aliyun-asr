@@ -1,0 +1,34 @@
+# 开发依赖
+node_modules/
+example/
+docs/
+
+# 构建输出（但保留 lib/）
+android/build/
+ios/build/
+ios/Pods/
+
+# 测试文件
+**/__tests__/
+**/__fixtures__/
+**/__mocks__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# 开发配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志
+npm-debug.log
+yarn-error.log
+
+# 其他
+.DS_Store
+coverage/
+.jest/

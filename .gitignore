@@ -1,0 +1,44 @@
+# OSX
+.DS_Store
+
+# node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Android
+android/build/
+android/.gradle
+android/.idea
+android/local.properties
+*.iml
+
+# iOS
+ios/build/
+ios/Pods/
+ios/Podfile.lock
+ios/*.xcworkspace
+ios/*.xcodeproj/xcuserdata
+ios/*.xcodeproj/project.xcworkspace
+
+# Example
+example/node_modules/
+example/android/build/
+example/ios/build/
+example/ios/Pods/
+
+# Build
+lib/
+dist/
+*.tgz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test
+coverage/
+.jest/

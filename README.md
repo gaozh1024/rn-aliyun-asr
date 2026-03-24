@@ -93,6 +93,10 @@ await asr.startRecognition(VadMode.MODE_VAD);
 
 查看 [example/App.tsx](./example/App.tsx) 获取完整示例代码。
 
+## 变更日志
+
+查看 [CHANGELOG.md](./docs/CHANGELOG.md) 了解每个版本的详细变更。
+
 ## 许可证
 
 MIT

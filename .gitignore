@@ -44,5 +44,7 @@ coverage/
 .jest/
 
 # Local docs and lockfiles
-docs/
+# docs/  # 保留文档，但忽略 SDK 文件
+docs/android/
+docs/ios/
 package-lock.json

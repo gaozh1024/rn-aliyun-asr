@@ -114,6 +114,7 @@ await asr.startRecognition(VadMode.MODE_VAD);
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| [v1.0.4](./docs/05-版本记录/v1.0.4.md) | 2024-03-24 | **修复 Android 代码与 AAR 不匹配** |
 | [v1.0.3](./docs/05-版本记录/v1.0.3.md) | 2024-03-24 | Android AAR 手动配置方案 |
 | [v1.0.2](./docs/05-版本记录/v1.0.2.md) | 2024-03-24 | Android AAR 依赖传递修复（已废弃） |
 | [v1.0.1](./docs/05-版本记录/v1.0.1.md) | 2024-03-24 | Android Gradle 8.x 兼容性修复（已废弃） |

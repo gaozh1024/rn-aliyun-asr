@@ -1,6 +1,6 @@
 {
   "name": "@gaozh1024/rn-aliyun-asr",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "React Native 阿里云实时语音识别 SDK",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",

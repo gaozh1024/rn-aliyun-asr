@@ -1,34 +1,36 @@
 package com.aliyunasr;
 
-import com.alibaba.nuisdk.*;
+import com.alibaba.idst.nui.*;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 
-public class NuiSdkListenerImpl extends NuiSdkListener {
+public class NuiCallbackImpl implements INativeNuiCallback {
     private final AliyunASRModule module;
 
-    public NuiSdkListenerImpl(AliyunASRModule module) {
+    public NuiCallbackImpl(AliyunASRModule module) {
         this.module = module;
     }
 
     @Override
-    public void onEventCallback(NuiCallbackEvent event, long dialog, String wuw, 
+    public void onEventCallback(Constants.NuiEvent event, int resultCode, long dialog, String wuw, 
                                 String asrResult, boolean finish, int code, String allResponse) {
         WritableMap params = Arguments.createMap();
         params.putInt("event", event.ordinal());
-        params.putDouble("dialogId", dialog);
         params.putInt("errorCode", code);
         params.putBoolean("isFinish", finish);
 
+        // ASR 结果处理
         if (asrResult != null && !asrResult.isEmpty()) {
             WritableMap resultMap = Arguments.createMap();
             resultMap.putString("text", asrResult);
-            resultMap.putBoolean("isFinal", 
-                event == NuiCallbackEvent.EVENT_ASR_RESULT || 
-                event == NuiCallbackEvent.EVENT_SENTENCE_END);
+            // 判断是否为最终结果
+            boolean isFinal = (event == Constants.NuiEvent.EVENT_ASR_RESULT || 
+                              event == Constants.NuiEvent.EVENT_SENTENCE_END);
+            resultMap.putBoolean("isFinal", isFinal);
             params.putMap("result", resultMap);
         }
 
+        // 错误信息
         if (code != 0) {
             params.putString("errorMessage", getErrorMessage(code));
         }
@@ -37,12 +39,13 @@ public class NuiSdkListenerImpl extends NuiSdkListener {
     }
 
     @Override
-    public int onUserDataCallback(byte[] buffer, int len) {
+    public int onAudioDataCallback(byte[] buffer, int len) {
+        // 音频数据回调，返回 0 表示成功
         return 0;
     }
 
     @Override
-    public void onAudioStateChanged(NuiAudioState state) {
+    public void onAudioStateChanged(Constants.AudioState state) {
         WritableMap params = Arguments.createMap();
         params.putString("type", "audioState");
         params.putInt("state", state.ordinal());

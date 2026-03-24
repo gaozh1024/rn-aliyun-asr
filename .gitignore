@@ -42,3 +42,7 @@ dist/
 # Test
 coverage/
 .jest/
+
+# Local docs and lockfiles
+docs/
+package-lock.json

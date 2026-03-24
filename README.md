@@ -95,7 +95,12 @@ await asr.startRecognition(VadMode.MODE_VAD);
 
 ## 变更日志
 
-查看 [CHANGELOG.md](./docs/CHANGELOG.md) 了解每个版本的详细变更。
+查看 [版本记录](./docs/05-版本记录) 了解每个版本的详细变更。
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| [v1.0.1](./docs/05-版本记录/v1.0.1.md) | 2024-03-24 | Android Gradle 8.x 兼容性修复 |
+| [v1.0.0](./docs/05-版本记录/v1.0.0.md) | 2024-03-24 | 首个正式版本 |
 
 ## 许可证
 

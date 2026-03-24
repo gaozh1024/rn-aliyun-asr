@@ -52,6 +52,6 @@ repositories {
 dependencies {
     implementation 'com.facebook.react:react-native:+'
     
-    // 阿里云 NUI SDK
-    implementation(name: 'nuisdk-release', ext: 'aar')
+    // 阿里云 NUI SDK - 使用 artifact 配置直接引用 AAR
+    implementation files('libs/nuisdk-release.aar')
 }

@@ -183,13 +183,13 @@ git commit -m "feat: add NuiSdkListenerImpl"
 ```gradle
 dependencies {
     implementation 'com.facebook.react:react-native:+'
-    implementation(name: 'nuisdk-release', ext: 'aar')
+    // 直接引用 AAR 文件（兼容 Gradle 8.x）
+    implementation files('libs/nuisdk-release.aar')
 }
 
 repositories {
-    flatDir {
-        dirs 'libs'
-    }
+    google()
+    mavenCentral()
 }
 ```
 
@@ -239,18 +239,14 @@ npx react-native run-android
 
 **Q1: AAR 找不到？**
 
-检查 `build.gradle`：
+检查 `build.gradle` 是否使用 `files()` 方式引用：
 ```gradle
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
-
 dependencies {
-    implementation(name: 'nuisdk-release', ext: 'aar')
+    implementation files('libs/nuisdk-release.aar')
 }
 ```
+
+> 注意：Gradle 8.x 中 `flatDir` 方案不再适用，请使用 `files()` 直接引用 AAR。
 
 **Q2: 资源文件找不到？**
 

@@ -44,14 +44,31 @@ android {
 repositories {
     google()
     mavenCentral()
-    flatDir {
-        dirs 'libs'
+}
+
+// 创建本地 AAR 依赖配置
+configurations {
+    aar {
+        transitive = true
     }
 }
 
 dependencies {
     implementation 'com.facebook.react:react-native:+'
     
-    // 阿里云 NUI SDK - 使用 artifact 配置直接引用 AAR
-    implementation files('libs/nuisdk-release.aar')
+    // 阿里云 NUI SDK
+    // 使用 api 让依赖传递，同时使用 @aar 后缀确保正确解析
+    api files('libs/nuisdk-release.aar')
+}
+
+// 将 AAR 文件打包到输出的 variant 中
+project.afterEvaluate {
+    if (project.hasProperty("android")) {
+        project.android.libraryVariants.all { variant ->
+            // 确保 AAR 被包含在产物中
+            variant.processJavaResourcesProvider.configure { task ->
+                task.from(file('libs/nuisdk-release.aar'))
+            }
+        }
+    }
 }

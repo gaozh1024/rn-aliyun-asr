@@ -5,10 +5,21 @@ export type {
   ASRResult,
   ASREventData,
   ASREventCallback,
+  ASRAudioStateData,
+  ASRAudioStateCallback,
+  AndroidAudioConfig,
+  AndroidRecorderStrategy,
+  AndroidRecorderSource,
 } from './types';
 
 // 枚举导出
-export { ASRErrorCode, VadMode, LogLevel, ASREvent } from './types';
+export {
+  ASRErrorCode,
+  VadMode,
+  LogLevel,
+  ASREvent,
+  ASRAudioState,
+} from './types';
 
 // 核心类导出
 export { AliyunASR, createASR } from './AliyunASR';

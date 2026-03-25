@@ -88,6 +88,28 @@ export enum LogLevel {
   NONE = 5,
 }
 
+// 录音状态
+export enum ASRAudioState {
+  OPEN = 0,
+  PAUSE = 1,
+  CLOSE = 2,
+}
+
+export type AndroidRecorderStrategy = 'sdk' | 'user' | 'auto';
+
+export type AndroidRecorderSource =
+  | 'voiceRecognition'
+  | 'mic'
+  | 'default'
+  | 'camcorder';
+
+export interface AndroidAudioConfig {
+  recorderStrategy?: AndroidRecorderStrategy;
+  recorderSource?: AndroidRecorderSource;
+  recorderSourceFallbacks?: AndroidRecorderSource[];
+  huaweiCompatibility?: boolean;
+}
+
 // 回调事件 - 仅保留语音识别相关事件
 export enum ASREvent {
   VAD_START = 0,
@@ -141,6 +163,8 @@ export interface ASRInitConfig {
   enableVad?: boolean;
   enableRecorderByUser?: boolean;
   serviceType?: 'asr' | 'speechTranscriber';
+  androidAudioConfig?: AndroidAudioConfig;
+  logAllEvents?: boolean;
   logLevel?: LogLevel;
   saveLog?: boolean;
 }
@@ -154,10 +178,13 @@ export interface ASRDialogParams {
 
 // 识别结果
 export interface ASRResult {
-  text: string;
+  text?: string | null;
   confidence?: number;
   isFinal: boolean;
   sentenceId?: number;
+  rawText?: string | null;
+  rawJson?: Record<string, unknown> | null;
+  duration?: number;
 }
 
 // 事件回调数据
@@ -172,5 +199,19 @@ export interface ASREventData {
   isFinish?: boolean;
 }
 
+// 录音状态回调数据
+export interface ASRAudioStateData {
+  state: ASRAudioState;
+  stateName?: string;
+  sampleRate16kBufferSize?: number;
+  sampleRate8kBufferSize?: number;
+  hasRecordAudioPermission?: boolean;
+  usingUserRecorder?: boolean;
+  currentRecorderSource?: string;
+  recorderState?: number;
+  recorderRecordingState?: number;
+}
+
 // 事件回调函数类型
 export type ASREventCallback = (data: ASREventData) => void;
+export type ASRAudioStateCallback = (data: ASRAudioStateData) => void;

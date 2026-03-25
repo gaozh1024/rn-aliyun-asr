@@ -56,15 +56,69 @@ const asr = AliyunASR.getInstance();
 await asr.initialize({
   appKey: 'your-app-key',
   token: 'your-token',
+  logAllEvents: true,
+  androidAudioConfig: {
+    recorderStrategy: 'auto',
+    recorderSource: 'voiceRecognition',
+    recorderSourceFallbacks: ['mic', 'default', 'camcorder'],
+    huaweiCompatibility: true,
+  },
 });
 
-// 监听识别结果
+// 监听识别结果（result.text 默认已解析为纯文本）
 asr.on(ASREvent.ASR_RESULT, (data) => {
   console.log('识别结果:', data.result?.text);
+  console.log('原始结果:', data.result?.rawJson ?? data.result?.rawText);
+});
+
+// 调试时建议默认监听全部事件
+asr.onAllEvents((data) => {
+  console.log('onASREvent =>', data.eventName, data);
+});
+
+// Android 录音状态调试
+asr.onAudioStateChange((data) => {
+  console.log('onASRAudioState =>', data);
 });
 
 // 开始识别
 await asr.startRecognition(VadMode.MODE_P2T);
+```
+
+### Android 排障建议
+
+- `startRecognition()` 按住说话请显式使用 `VadMode.MODE_P2T`
+- 初始化时建议开启 `logAllEvents: true`，默认打印全部 `onASREvent`
+- 业务层建议同时监听：
+  - `ASREvent.MIC_ERROR`
+  - `ASREvent.ASR_ERROR`
+  - `ASREvent.DIALOG_ERROR`
+- 对华为/Honor 设备，框架会在 `androidAudioConfig.recorderStrategy = 'auto'` 时优先切到用户侧 `AudioRecord` 兜底
+- 可显式配置 Android 录音 source fallback：
+
+```typescript
+await asr.initialize({
+  appKey: 'your-app-key',
+  token: 'your-token',
+  androidAudioConfig: {
+    recorderStrategy: 'user',
+    recorderSource: 'voiceRecognition',
+    recorderSourceFallbacks: ['mic', 'default', 'camcorder'],
+  },
+});
+```
+
+- `result.text` 默认会从阿里云返回 JSON 中提取 `payload.result` 作为纯文本
+- 如需调试原始返回值，可读取 `result.rawText` 或 `result.rawJson`
+- 如怀疑编码兼容问题，可先切到 PCM 排查：
+
+```typescript
+await asr.initialize({
+  appKey: 'your-app-key',
+  token: 'your-token',
+  format: 'pcm',
+  logAllEvents: true,
+});
 ```
 
 ## 文档
@@ -103,6 +157,7 @@ await asr.startRecognition(VadMode.MODE_P2T);
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| [v1.0.8](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.8.md) | 2026-03-25 | Android 用户录音链路修复、结果纯文本解析、事件管理优化 |
 | [v1.0.7](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.7.md) | 2026-03-24 | Android ASR 参数修正、资源补齐、事件链路增强 |
 | [v1.0.6](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.6.md) | 2026-03-24 | 官方文档对齐、发布准备完善、标签修复 |
 | [v1.0.5](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.5.md) | 2026-03-24 | Android NativeNui 对齐、P2T 默认、iOS 线程修正 |

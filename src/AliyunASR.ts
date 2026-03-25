@@ -6,8 +6,11 @@ import {
 import type {
   ASRInitConfig,
   ASRDialogParams,
+  ASRResult,
   ASREventData,
   ASREventCallback,
+  ASRAudioStateData,
+  ASRAudioStateCallback,
 } from './types';
 import { ASREvent, VadMode, LogLevel } from './types';
 
@@ -67,7 +70,10 @@ export class AliyunASR {
   private static instance: AliyunASR;
   private subscriptions: EmitterSubscription[] = [];
   private eventCallbacks: Map<string, Set<ASREventCallback>> = new Map();
+  private allEventCallbacks: Set<ASREventCallback> = new Set();
+  private audioStateCallbacks: Set<ASRAudioStateCallback> = new Set();
   private isInitialized = false;
+  private logAllEvents = true;
 
   private constructor() {}
 
@@ -90,6 +96,8 @@ export class AliyunASR {
       await this.release();
     }
 
+    this.logAllEvents = config.logAllEvents ?? true;
+
     const initParams = this.buildInitParams(config);
 
     await AliyunASRModule.initialize(
@@ -111,7 +119,7 @@ export class AliyunASR {
       return;
     }
 
-    this.removeEventListeners();
+    this.removeNativeEventListeners();
     await AliyunASRModule.release();
     this.isInitialized = false;
   }
@@ -215,6 +223,43 @@ export class AliyunASR {
     this.on(event, wrapper);
   }
 
+  /**
+   * 订阅全部 ASR 事件
+   */
+  onAllEvents(callback: ASREventCallback): void {
+    this.allEventCallbacks.add(callback);
+  }
+
+  /**
+   * 取消订阅全部 ASR 事件
+   */
+  offAllEvents(callback: ASREventCallback): void {
+    this.allEventCallbacks.delete(callback);
+  }
+
+  /**
+   * 订阅录音状态
+   */
+  onAudioStateChange(callback: ASRAudioStateCallback): void {
+    this.audioStateCallbacks.add(callback);
+  }
+
+  /**
+   * 取消订阅录音状态
+   */
+  offAudioStateChange(callback: ASRAudioStateCallback): void {
+    this.audioStateCallbacks.delete(callback);
+  }
+
+  /**
+   * 清空全部 JS 回调
+   */
+  removeAllCallbacks(): void {
+    this.eventCallbacks.clear();
+    this.allEventCallbacks.clear();
+    this.audioStateCallbacks.clear();
+  }
+
   // ============ 私有方法 ============
 
   private ensureInitialized(): void {
@@ -234,6 +279,10 @@ export class AliyunASR {
       enable_recorder_by_user: config.enableRecorderByUser ?? false,
       vocab_default_weight: 2,
     };
+
+    if (config.androidAudioConfig) {
+      params.android_audio_config = config.androidAudioConfig;
+    }
 
     if (config.url) {
       params.url = config.url;
@@ -287,7 +336,9 @@ export class AliyunASR {
   }
 
   private setupEventListeners(): void {
-    const subscription = eventEmitter.addListener(
+    this.removeNativeEventListeners();
+
+    const asrSubscription = eventEmitter.addListener(
       'onASREvent',
       (nativeEvent: any) => {
         const resolvedEvent =
@@ -297,13 +348,23 @@ export class AliyunASR {
         const eventData: ASREventData = {
           event: resolvedEvent,
           eventName: nativeEvent.eventName,
-          result: nativeEvent.result,
+          result: this.normalizeResult(nativeEvent.result, resolvedEvent),
           errorCode: nativeEvent.errorCode,
           errorMessage: nativeEvent.errorMessage,
           wakeWord: nativeEvent.wakeWord,
           dialogId: nativeEvent.dialogId,
           isFinish: nativeEvent.isFinish,
         };
+
+        if (this.logAllEvents) {
+          const logger =
+            resolvedEvent === ASREvent.MIC_ERROR ||
+            resolvedEvent === ASREvent.ASR_ERROR ||
+            resolvedEvent === ASREvent.DIALOG_ERROR
+              ? console.error
+              : console.log;
+          logger('[AliyunASR] onASREvent', eventData);
+        }
 
         // 触发特定事件类型的回调
         const callbacks = this.eventCallbacks.get(resolvedEvent.toString());
@@ -316,16 +377,119 @@ export class AliyunASR {
             }
           });
         }
+
+        this.allEventCallbacks.forEach((cb) => {
+          try {
+            cb(eventData);
+          } catch (e) {
+            console.error('ASR 全量事件回调错误:', e);
+          }
+        });
       },
     );
 
-    this.subscriptions.push(subscription);
+    const audioStateSubscription = eventEmitter.addListener(
+      'onASRAudioState',
+      (nativeAudioState: any) => {
+        const audioStateData: ASRAudioStateData = {
+          state: nativeAudioState.state as ASRAudioStateData['state'],
+          stateName: nativeAudioState.stateName,
+          sampleRate16kBufferSize: nativeAudioState.sampleRate16kBufferSize,
+          sampleRate8kBufferSize: nativeAudioState.sampleRate8kBufferSize,
+          hasRecordAudioPermission: nativeAudioState.hasRecordAudioPermission,
+          usingUserRecorder: nativeAudioState.usingUserRecorder,
+          currentRecorderSource: nativeAudioState.currentRecorderSource,
+          recorderState: nativeAudioState.recorderState,
+          recorderRecordingState: nativeAudioState.recorderRecordingState,
+        };
+
+        if (this.logAllEvents) {
+          console.log('[AliyunASR] onASRAudioState', audioStateData);
+        }
+
+        this.audioStateCallbacks.forEach((cb) => {
+          try {
+            cb(audioStateData);
+          } catch (e) {
+            console.error('ASR 录音状态回调错误:', e);
+          }
+        });
+      },
+    );
+
+    this.subscriptions.push(asrSubscription, audioStateSubscription);
   }
 
-  private removeEventListeners(): void {
+  private normalizeResult(
+    nativeResult: any,
+    event: ASREvent,
+  ): ASRResult | undefined {
+    if (!nativeResult) {
+      return undefined;
+    }
+
+    const rawText =
+      typeof nativeResult.text === 'string' || nativeResult.text == null
+        ? nativeResult.text
+        : String(nativeResult.text);
+    const rawJson = this.tryParseResultJson(rawText);
+    const payload = rawJson?.payload as Record<string, unknown> | undefined;
+    const parsedText =
+      typeof payload?.result === 'string' ? payload.result : undefined;
+    const parsedDuration =
+      typeof payload?.duration === 'number' ? payload.duration : undefined;
+
+    return {
+      text: parsedText ?? rawText,
+      confidence:
+        typeof nativeResult.confidence === 'number'
+          ? nativeResult.confidence
+          : undefined,
+      isFinal:
+        typeof nativeResult.isFinal === 'boolean'
+          ? nativeResult.isFinal
+          : event === ASREvent.ASR_RESULT || event === ASREvent.SENTENCE_END,
+      sentenceId:
+        typeof nativeResult.sentenceId === 'number'
+          ? nativeResult.sentenceId
+          : undefined,
+      rawText,
+      rawJson,
+      duration:
+        typeof nativeResult.duration === 'number'
+          ? nativeResult.duration
+          : parsedDuration,
+    };
+  }
+
+  private tryParseResultJson(
+    value: string | null | undefined,
+  ): Record<string, unknown> | null {
+    if (!value) {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (
+      !(
+        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))
+      )
+    ) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private removeNativeEventListeners(): void {
     this.subscriptions.forEach((sub) => sub.remove());
     this.subscriptions = [];
-    this.eventCallbacks.clear();
   }
 }
 

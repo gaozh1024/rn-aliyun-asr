@@ -1,6 +1,11 @@
 package com.aliyunasr;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.util.Log;
+import androidx.core.content.ContextCompat;
 import com.alibaba.idst.nui.*;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
@@ -66,7 +71,9 @@ public class NuiCallbackImpl implements INativeNuiCallback {
 
     @Override
     public int onNuiNeedAudioData(byte[] buffer, int len) {
-        return 0;
+        int read = module.provideAudioData(buffer, len);
+        Log.d(LOG_TAG, "onNuiNeedAudioData len=" + len + ", read=" + read);
+        return read;
     }
 
     @Override
@@ -74,6 +81,36 @@ public class NuiCallbackImpl implements INativeNuiCallback {
         WritableMap params = Arguments.createMap();
         params.putString("type", "audioState");
         params.putInt("state", state.ordinal());
+        params.putString("stateName", state.name());
+        params.putInt(
+                "sampleRate16kBufferSize",
+                AudioRecord.getMinBufferSize(
+                        16000,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT
+                )
+        );
+        params.putInt(
+                "sampleRate8kBufferSize",
+                AudioRecord.getMinBufferSize(
+                        8000,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT
+                )
+        );
+        params.putBoolean(
+                "hasRecordAudioPermission",
+                ContextCompat.checkSelfPermission(
+                        module.getReactContext(),
+                        Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+        );
+        module.onNativeAudioStateChanged(state);
+        module.appendAudioStateDebug(params);
+        Log.i(
+                LOG_TAG,
+                "audioState=" + state.name() + ", audioDebug=" + module.buildAudioDebugSnapshot()
+        );
         module.sendEvent("onASRAudioState", params);
     }
 

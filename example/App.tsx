@@ -32,6 +32,7 @@ export default function App() {
   const [status, setStatus] = useState('未初始化');
   const [appKey, setAppKey] = useState(CONFIG.appKey);
   const [token, setToken] = useState(CONFIG.token);
+  const [format, setFormat] = useState<'opus' | 'pcm'>('opus');
 
   // 初始化 SDK
   const initialize = useCallback(async () => {
@@ -45,16 +46,24 @@ export default function App() {
       await asr.initialize({
         appKey: appKey,
         token: token,
+        format,
+        androidAudioConfig: {
+          recorderStrategy: 'auto',
+          recorderSource: 'voiceRecognition',
+          recorderSourceFallbacks: ['mic', 'default', 'camcorder'],
+          huaweiCompatibility: true,
+        },
+        logAllEvents: true,
         logLevel: LogLevel.INFO,
         saveLog: false,
       });
       setIsInitialized(true);
-      setStatus('已初始化');
+      setStatus(`已初始化（${format} / MODE_P2T）`);
     } catch (error) {
       setStatus(`初始化失败: ${error}`);
       Alert.alert('初始化失败', String(error));
     }
-  }, [appKey, token]);
+  }, [appKey, token, format]);
 
   // 释放 SDK
   const release = useCallback(async () => {
@@ -92,37 +101,68 @@ export default function App() {
 
   // 监听识别事件
   useEffect(() => {
-    // 临时结果
-    asr.on(ASREvent.ASR_PARTIAL_RESULT, (data) => {
+    const handleAllEvents = (data: any) => {
+      console.log('[Demo] ASR Event =>', data.eventName, data);
+
+      if (data.event === ASREvent.ASR_STARTED) {
+        setStatus('识别会话已建立，等待音频...');
+      }
+    };
+
+    const handlePartialResult = (data: any) => {
       if (data.result?.text) {
         setCurrentText(data.result.text);
       }
-    });
+    };
 
-    // 最终结果
-    asr.on(ASREvent.ASR_RESULT, (data) => {
+    const handleResult = (data: any) => {
       if (data.result?.text) {
         setResults((prev) => [...prev, data.result!.text]);
         setCurrentText('');
       }
-    });
+    };
 
-    // 错误处理
-    asr.on(ASREvent.ASR_ERROR, (data) => {
-      setStatus(`错误: ${data.errorMessage}`);
+    const createNativeErrorHandler = (label: string) => (data: any) => {
+      console.error(`[Demo] ${label}`, data);
+      setStatus(`${label}: ${data.errorCode} ${data.errorMessage ?? ''}`);
       setIsRecording(false);
-    });
+    };
+    const handleASRError = createNativeErrorHandler('ASR_ERROR');
+    const handleMicError = createNativeErrorHandler('MIC_ERROR');
+    const handleDialogError = createNativeErrorHandler('DIALOG_ERROR');
 
-    // VAD 事件
-    asr.on(ASREvent.VAD_START, () => {
+    const handleVadStart = () => {
       setStatus('检测到语音...');
-    });
+    };
 
-    asr.on(ASREvent.VAD_END, () => {
+    const handleVadEnd = () => {
       setStatus('语音结束');
-    });
+    };
+
+    const handleAudioState = (data: any) => {
+      console.log('[Demo] Audio State =>', data);
+    };
+
+    asr.onAllEvents(handleAllEvents);
+    asr.on(ASREvent.ASR_PARTIAL_RESULT, handlePartialResult);
+    asr.on(ASREvent.ASR_RESULT, handleResult);
+    asr.on(ASREvent.ASR_ERROR, handleASRError);
+    asr.on(ASREvent.MIC_ERROR, handleMicError);
+    asr.on(ASREvent.DIALOG_ERROR, handleDialogError);
+    asr.on(ASREvent.VAD_START, handleVadStart);
+    asr.on(ASREvent.VAD_END, handleVadEnd);
+    asr.onAudioStateChange(handleAudioState);
 
     return () => {
+      asr.offAllEvents(handleAllEvents);
+      asr.off(ASREvent.ASR_PARTIAL_RESULT, handlePartialResult);
+      asr.off(ASREvent.ASR_RESULT, handleResult);
+      asr.off(ASREvent.ASR_ERROR, handleASRError);
+      asr.off(ASREvent.MIC_ERROR, handleMicError);
+      asr.off(ASREvent.DIALOG_ERROR, handleDialogError);
+      asr.off(ASREvent.VAD_START, handleVadStart);
+      asr.off(ASREvent.VAD_END, handleVadEnd);
+      asr.offAudioStateChange(handleAudioState);
       asr.release().catch(console.error);
     };
   }, []);
@@ -151,6 +191,24 @@ export default function App() {
       )}
 
       <Text style={styles.status}>状态: {status}</Text>
+      <Text style={styles.status}>当前编码: {format}</Text>
+
+      {!isInitialized && (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, format === 'opus' && styles.buttonActive]}
+            onPress={() => setFormat('opus')}
+          >
+            <Text style={styles.buttonText}>使用 opus</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, format === 'pcm' && styles.buttonActive]}
+            onPress={() => setFormat('pcm')}
+          >
+            <Text style={styles.buttonText}>使用 pcm</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.buttonContainer}>
         {!isInitialized ? (

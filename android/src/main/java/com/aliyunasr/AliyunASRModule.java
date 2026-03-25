@@ -1,7 +1,12 @@
 package com.aliyunasr;
 
+import android.Manifest;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import com.alibaba.idst.nui.*;
 import com.facebook.react.bridge.*;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -18,6 +23,15 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
     private NativeNui nativeNui;
     private NuiCallbackImpl callback;
     private final ReactApplicationContext reactContext;
+    private String lastInitParams = "{}";
+    private String lastRecognitionParams = "{}";
+    private String lastDialogParams = "{}";
+    private int lastVadModeCode = 1;
+    private String lastVadModeName = "TYPE_P2T";
+    private int currentSampleRate = 16000;
+    private AndroidAudioConfig androidAudioConfig = AndroidAudioConfig.defaultConfig();
+    private UserAudioRecorder userAudioRecorder;
+    private boolean useUserRecorder = false;
 
     public AliyunASRModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -37,6 +51,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
             callback = new NuiCallbackImpl(this);
             String normalizedParameters = normalizeInitParams(parameters);
             String workspacePath = getWorkspacePath(normalizedParameters);
+            lastInitParams = normalizedParameters;
 
             if (!CommonUtils.copyAssetsToExplicitPath(reactContext, workspacePath)) {
                 promise.reject("ASSET_COPY_ERROR", "复制 Android 资源失败");
@@ -47,10 +62,19 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
             int safeLogLevel = Math.max(0, Math.min(logLevel, levels.length - 1));
             Constants.LogLevel level = levels[safeLogLevel];
 
+            Log.i(
+                    LOG_TAG,
+                    "initialize sdkVersion=" + nativeNui.getVersion()
+                            + ", logLevel=" + level.name()
+                            + ", saveLog=" + saveLog
+                            + ", params=" + normalizedParameters
+            );
+
             int result = nativeNui.initialize(callback, normalizedParameters, level, saveLog);
 
             if (result == 240012) {
                 Log.w(LOG_TAG, "SDK already initialized, releasing and retrying initialize");
+                stopUserRecorder();
                 nativeNui.release();
                 result = nativeNui.initialize(callback, normalizedParameters, level, saveLog);
             }
@@ -68,6 +92,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void release(Promise promise) {
         if (nativeNui != null) {
+            stopUserRecorder();
             int result = nativeNui.release();
             nativeNui = null;
             callback = null;
@@ -90,11 +115,28 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            Constants.VadMode[] vadModes = Constants.VadMode.values();
-            int safeVadMode = Math.max(0, Math.min(vadMode, vadModes.length - 1));
-            int result = nativeNui.startDialog(vadModes[safeVadMode], dialogParams);
+            Constants.VadMode resolvedVadMode = Constants.VadMode.fromInt(vadMode);
+            lastVadModeCode = vadMode;
+            lastVadModeName = resolvedVadMode.name();
+            lastDialogParams = dialogParams == null ? "{}" : dialogParams;
+
+            Log.i(
+                    LOG_TAG,
+                    "startDialog requestedVadMode=" + vadMode
+                            + ", resolvedVadMode=" + resolvedVadMode.name()
+                            + ", resolvedVadCode=" + resolvedVadMode.getCode()
+                            + ", dialogParams=" + lastDialogParams
+                            + ", audioDebug=" + buildAudioDebugSnapshot()
+            );
+
+            int result = nativeNui.startDialog(resolvedVadMode, dialogParams);
 
             if (result == 0) {
+                if (useUserRecorder && !startUserRecorder("startDialog")) {
+                    nativeNui.cancelDialog();
+                    promise.reject("START_ERROR", "开始识别失败，用户录音器启动失败");
+                    return;
+                }
                 promise.resolve(null);
             } else {
                 promise.reject("START_ERROR", "开始识别失败，错误码: " + result);
@@ -112,6 +154,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
+            stopUserRecorder();
             int result = nativeNui.stopDialog();
 
             if (result == 0) {
@@ -133,6 +176,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
 
         try {
             Log.d(LOG_TAG, "cancelDialog force=" + force);
+            stopUserRecorder();
             int result = nativeNui.cancelDialog();
 
             if (result == 0) {
@@ -173,6 +217,9 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
+            lastRecognitionParams = params;
+            updateAudioConfigFromRecognitionParams(params);
+            Log.i(LOG_TAG, "setParams params=" + params);
             int result = nativeNui.setParams(params);
 
             if (result == 0) {
@@ -210,15 +257,148 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         return reactContext;
     }
 
+    void onNativeAudioStateChanged(Constants.AudioState state) {
+        if (!useUserRecorder) {
+            return;
+        }
+
+        if (state == Constants.AudioState.STATE_OPEN) {
+            startUserRecorder("audioStateOpen");
+        } else if (state == Constants.AudioState.STATE_PAUSE || state == Constants.AudioState.STATE_CLOSE) {
+            stopUserRecorder();
+        }
+    }
+
+    int provideAudioData(byte[] buffer, int len) {
+        if (!useUserRecorder || userAudioRecorder == null) {
+            return 0;
+        }
+
+        if (!userAudioRecorder.isActive() && !startUserRecorder("needAudioData")) {
+            return 0;
+        }
+
+        return userAudioRecorder.read(buffer, len);
+    }
+
+    void appendAudioStateDebug(WritableMap params) {
+        params.putBoolean("usingUserRecorder", useUserRecorder);
+        String currentRecorderSource =
+                userAudioRecorder != null ? userAudioRecorder.getCurrentRecorderSourceName() : null;
+        if (currentRecorderSource != null) {
+            params.putString("currentRecorderSource", currentRecorderSource);
+        } else {
+            params.putNull("currentRecorderSource");
+        }
+        params.putInt(
+                "recorderState",
+                userAudioRecorder != null ? userAudioRecorder.getRecorderState() : AudioRecord.STATE_UNINITIALIZED
+        );
+        params.putInt(
+                "recorderRecordingState",
+                userAudioRecorder != null ? userAudioRecorder.getRecorderRecordingState() : AudioRecord.RECORDSTATE_STOPPED
+        );
+    }
+
+    String buildAudioDebugSnapshot() {
+        int bufferSize16k = AudioRecord.getMinBufferSize(
+                16000,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+        );
+        int bufferSize8k = AudioRecord.getMinBufferSize(
+                8000,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+        );
+        boolean hasRecordAudioPermission =
+                ContextCompat.checkSelfPermission(reactContext, Manifest.permission.RECORD_AUDIO)
+                        == android.content.pm.PackageManager.PERMISSION_GRANTED;
+
+        return "{"
+                + "\"hasRecordAudioPermission\":" + hasRecordAudioPermission
+                + ",\"sampleRate16kBufferSize\":" + bufferSize16k
+                + ",\"sampleRate8kBufferSize\":" + bufferSize8k
+                + ",\"manufacturer\":\"" + Build.MANUFACTURER + "\""
+                + ",\"brand\":\"" + Build.BRAND + "\""
+                + ",\"model\":\"" + Build.MODEL + "\""
+                + ",\"useUserRecorder\":" + useUserRecorder
+                + ",\"lastVadModeCode\":" + lastVadModeCode
+                + ",\"lastVadModeName\":\"" + lastVadModeName + "\""
+                + ",\"androidAudioConfig\":" + JSONObject.quote(androidAudioConfig.toDebugString())
+                + ",\"userAudioRecorder\":" + JSONObject.quote(userAudioRecorder != null ? userAudioRecorder.getDebugSnapshot() : "{}")
+                + ",\"lastRecognitionParams\":" + JSONObject.quote(lastRecognitionParams)
+                + ",\"lastInitParams\":" + JSONObject.quote(lastInitParams)
+                + ",\"lastDialogParams\":" + JSONObject.quote(lastDialogParams)
+                + "}";
+    }
+
     private String normalizeInitParams(String parameters) throws JSONException {
         JSONObject params = new JSONObject(parameters);
-        String workspacePath = getWorkspacePath(parameters);
+        JSONObject audioConfigJson = params.optJSONObject("android_audio_config");
+        androidAudioConfig = AndroidAudioConfig.fromJson(audioConfigJson);
+        params.remove("android_audio_config");
+        currentSampleRate = params.optInt("sample_rate", 16000);
+
+        boolean explicitEnableRecorderByUser = params.optBoolean("enable_recorder_by_user", false);
+        useUserRecorder = explicitEnableRecorderByUser || androidAudioConfig.shouldUseUserRecorder();
+        params.put("enable_recorder_by_user", useUserRecorder);
+        userAudioRecorder = useUserRecorder
+                ? new UserAudioRecorder(androidAudioConfig, currentSampleRate)
+                : null;
+
+        String workspacePath = getWorkspacePath(params.toString());
         params.put("workspace", workspacePath);
         params.put("debug_path", workspacePath);
-        if (!params.has("enable_recorder_by_user")) {
-            params.put("enable_recorder_by_user", false);
-        }
+
+        Log.i(
+                LOG_TAG,
+                "normalizeInitParams useUserRecorder=" + useUserRecorder
+                        + ", sampleRate=" + currentSampleRate
+                        + ", androidAudioConfig=" + androidAudioConfig.toDebugString()
+        );
         return params.toString();
+    }
+
+    private boolean startUserRecorder(String reason) {
+        if (!useUserRecorder || nativeNui == null || userAudioRecorder == null) {
+            return true;
+        }
+
+        if (userAudioRecorder.isActive()) {
+            return true;
+        }
+
+        userAudioRecorder.updateSampleRate(currentSampleRate);
+        boolean started = userAudioRecorder.start();
+        Log.i(
+                LOG_TAG,
+                "startUserRecorder reason=" + reason
+                        + ", started=" + started
+                        + ", audioDebug=" + buildAudioDebugSnapshot()
+        );
+        return started;
+    }
+
+    private void stopUserRecorder() {
+        if (userAudioRecorder != null) {
+            userAudioRecorder.stop();
+        }
+    }
+
+    private void updateAudioConfigFromRecognitionParams(String params) {
+        try {
+            JSONObject json = new JSONObject(params);
+            JSONObject nlsConfig = json.optJSONObject("nls_config");
+            if (nlsConfig != null && nlsConfig.has("sample_rate")) {
+                currentSampleRate = nlsConfig.optInt("sample_rate", currentSampleRate);
+                if (userAudioRecorder != null) {
+                    userAudioRecorder.updateSampleRate(currentSampleRate);
+                }
+            }
+        } catch (JSONException e) {
+            Log.w(LOG_TAG, "parse recognition params failed: " + params, e);
+        }
     }
 
     private String getWorkspacePath(String parameters) throws JSONException {

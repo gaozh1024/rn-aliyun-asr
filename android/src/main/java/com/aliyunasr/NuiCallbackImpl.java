@@ -1,10 +1,12 @@
 package com.aliyunasr;
 
+import android.util.Log;
 import com.alibaba.idst.nui.*;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 
 public class NuiCallbackImpl implements INativeNuiCallback {
+    private static final String LOG_TAG = "AliyunASR";
     private final AliyunASRModule module;
 
     public NuiCallbackImpl(AliyunASRModule module) {
@@ -21,6 +23,7 @@ public class NuiCallbackImpl implements INativeNuiCallback {
     ) {
         WritableMap params = Arguments.createMap();
         params.putInt("event", event.ordinal());
+        params.putString("eventName", event.name());
         params.putInt("dialogId", dialogId);
 
         if (kwsResult != null && kwsResult.kws != null && !kwsResult.kws.isEmpty()) {
@@ -47,6 +50,16 @@ public class NuiCallbackImpl implements INativeNuiCallback {
         if (errorCode != 0) {
             params.putString("errorMessage", getErrorMessage(errorCode));
         }
+
+        Log.d(
+                LOG_TAG,
+                "event=" + event.name()
+                        + ", ordinal=" + event.ordinal()
+                        + ", resultCode=" + resultCode
+                        + ", dialogId=" + dialogId
+                        + ", finish=" + (asrResult != null && asrResult.finish)
+                        + ", text=" + (asrResult != null ? asrResult.asrResult : "")
+        );
 
         module.sendEvent("onASREvent", params);
     }

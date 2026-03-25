@@ -1,14 +1,19 @@
 package com.aliyunasr;
 
+import android.util.Log;
 import androidx.annotation.NonNull;
 import com.alibaba.idst.nui.*;
 import com.facebook.react.bridge.*;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-
+import java.io.File;
+import org.json.JSONException;
+import org.json.JSONObject;
 import javax.annotation.Nullable;
 
 public class AliyunASRModule extends ReactContextBaseJavaModule {
     private static final String MODULE_NAME = "AliyunASRModule";
+    private static final String LOG_TAG = "AliyunASR";
+    private static final String DEFAULT_WORKSPACE_DIR = "aliyun_asr";
 
     private NativeNui nativeNui;
     private NuiCallbackImpl callback;
@@ -30,12 +35,25 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         try {
             nativeNui = NativeNui.GetInstance();
             callback = new NuiCallbackImpl(this);
+            String normalizedParameters = normalizeInitParams(parameters);
+            String workspacePath = getWorkspacePath(normalizedParameters);
+
+            if (!CommonUtils.copyAssetsToExplicitPath(reactContext, workspacePath)) {
+                promise.reject("ASSET_COPY_ERROR", "复制 Android 资源失败");
+                return;
+            }
 
             Constants.LogLevel[] levels = Constants.LogLevel.values();
             int safeLogLevel = Math.max(0, Math.min(logLevel, levels.length - 1));
             Constants.LogLevel level = levels[safeLogLevel];
 
-            int result = nativeNui.initialize(callback, parameters, level, saveLog);
+            int result = nativeNui.initialize(callback, normalizedParameters, level, saveLog);
+
+            if (result == 240012) {
+                Log.w(LOG_TAG, "SDK already initialized, releasing and retrying initialize");
+                nativeNui.release();
+                result = nativeNui.initialize(callback, normalizedParameters, level, saveLog);
+            }
 
             if (result == 0) {
                 promise.resolve(null);
@@ -114,6 +132,7 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
         }
 
         try {
+            Log.d(LOG_TAG, "cancelDialog force=" + force);
             int result = nativeNui.cancelDialog();
 
             if (result == 0) {
@@ -189,6 +208,47 @@ public class AliyunASRModule extends ReactContextBaseJavaModule {
 
     ReactApplicationContext getReactContext() {
         return reactContext;
+    }
+
+    private String normalizeInitParams(String parameters) throws JSONException {
+        JSONObject params = new JSONObject(parameters);
+        String workspacePath = getWorkspacePath(parameters);
+        params.put("workspace", workspacePath);
+        params.put("debug_path", workspacePath);
+        if (!params.has("enable_recorder_by_user")) {
+            params.put("enable_recorder_by_user", false);
+        }
+        return params.toString();
+    }
+
+    private String getWorkspacePath(String parameters) throws JSONException {
+        JSONObject params = new JSONObject(parameters);
+        if (params.has("workspace")) {
+            String workspace = params.optString("workspace");
+            if (workspace != null && !workspace.isEmpty()) {
+                ensureDirectory(workspace);
+                return workspace;
+            }
+        }
+
+        if (params.has("debug_path")) {
+            String debugPath = params.optString("debug_path");
+            if (debugPath != null && !debugPath.isEmpty()) {
+                ensureDirectory(debugPath);
+                return debugPath;
+            }
+        }
+
+        File workspaceDir = new File(reactContext.getFilesDir(), DEFAULT_WORKSPACE_DIR);
+        ensureDirectory(workspaceDir.getAbsolutePath());
+        return workspaceDir.getAbsolutePath();
+    }
+
+    private void ensureDirectory(String path) {
+        File directory = new File(path);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
     }
 
     @ReactMethod

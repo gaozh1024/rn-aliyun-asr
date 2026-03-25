@@ -93,40 +93,40 @@ export enum ASREvent {
   VAD_START = 0,
   VAD_TIMEOUT = 1,
   VAD_END = 2,
-  WUW = 4,
-  WUW_TRUSTED = 5,
-  WUW_CONFIRMED = 6,
-  WUW_REJECTED = 7,
-  WUW_END = 8,
-  ASR_PARTIAL_RESULT = 9,
-  ASR_RESULT = 10,
-  ASR_ERROR = 11,
-  DIALOG_ERROR = 12,
-  ONESHOT_TIMEOUT = 13,
-  DIALOG_RESULT = 14,
-  WUW_HINT = 15,
-  VPR_RESULT = 16,
-  TEXT2ACTION_DIALOG_RESULT = 17,
-  TEXT2ACTION_ERROR = 18,
-  ATTR_RESULT = 19,
-  MIC_ERROR = 20,
-  DIALOG_EX = 21,
-  WUW_ERROR = 22,
-  BEFORE_CONNECTION = 23,
-  SENTENCE_START = 28,
-  SENTENCE_END = 29,
-  SENTENCE_SEMANTICS = 30,
-  RESULT_TRANSLATED = 31,
-  TRANSCRIBER_COMPLETE = 35,
-  FILE_TRANS_CONNECTED = 36,
-  FILE_TRANS_UPLOADED = 37,
-  FILE_TRANS_RESULT = 38,
-  FILE_TRANS_UPLOAD_PROGRESS = 39,
-  TRANSCRIBER_STARTED = 39,
-  ASR_STARTED = 40,
-  FILE_TRANS_QUERY_RESULT = 41,
-  WUW_START = 42,
-  WUW_DATA = 43,
+  WUW = 3,
+  WUW_TRUSTED = 4,
+  WUW_CONFIRMED = 5,
+  WUW_REJECTED = 6,
+  WUW_END = 7,
+  ASR_PARTIAL_RESULT = 8,
+  ASR_RESULT = 9,
+  ASR_ERROR = 10,
+  DIALOG_ERROR = 11,
+  ONESHOT_TIMEOUT = 12,
+  DIALOG_RESULT = 13,
+  WUW_HINT = 14,
+  VPR_RESULT = 15,
+  TEXT2ACTION_DIALOG_RESULT = 16,
+  TEXT2ACTION_ERROR = 17,
+  ATTR_RESULT = 18,
+  MIC_ERROR = 19,
+  DIALOG_EX = 20,
+  WUW_ERROR = 21,
+  BEFORE_CONNECTION = 22,
+  SENTENCE_START = 23,
+  SENTENCE_END = 24,
+  SENTENCE_SEMANTICS = 25,
+  RESULT_TRANSLATED = 26,
+  TRANSCRIBER_COMPLETE = 27,
+  FILE_TRANS_CONNECTED = 28,
+  FILE_TRANS_UPLOADED = 29,
+  FILE_TRANS_RESULT = 30,
+  FILE_TRANS_UPLOAD_PROGRESS = 31,
+  TRANSCRIBER_STARTED = 32,
+  ASR_STARTED = 33,
+  FILE_TRANS_QUERY_RESULT = 34,
+  WUW_START = 35,
+  WUW_DATA = 36,
 }
 
 // 初始化配置
@@ -139,6 +139,8 @@ export interface ASRInitConfig {
   sampleRate?: number;
   format?: 'opus' | 'pcm';
   enableVad?: boolean;
+  enableRecorderByUser?: boolean;
+  serviceType?: 'asr' | 'speechTranscriber';
   logLevel?: LogLevel;
   saveLog?: boolean;
 }
@@ -161,6 +163,7 @@ export interface ASRResult {
 // 事件回调数据
 export interface ASREventData {
   event: ASREvent;
+  eventName?: string;
   result?: ASRResult;
   errorCode?: number;
   errorMessage?: string;

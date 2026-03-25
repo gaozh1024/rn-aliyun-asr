@@ -103,6 +103,7 @@ await asr.startRecognition(VadMode.MODE_P2T);
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| [v1.0.7](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.7.md) | 2026-03-24 | Android ASR 参数修正、资源补齐、事件链路增强 |
 | [v1.0.6](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.6.md) | 2026-03-24 | 官方文档对齐、发布准备完善、标签修复 |
 | [v1.0.5](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.5.md) | 2026-03-24 | Android NativeNui 对齐、P2T 默认、iOS 线程修正 |
 | [v1.0.4](https://github.com/gaozh1024/rn-aliyun-asr/blob/main/docs/05-%E7%89%88%E6%9C%AC%E8%AE%B0%E5%BD%95/v1.0.4.md) | 2024-03-24 | **修复 Android 代码与 AAR 不匹配** |

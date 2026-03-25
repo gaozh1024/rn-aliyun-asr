@@ -13,6 +13,45 @@ import { ASREvent, VadMode, LogLevel } from './types';
 
 const { AliyunASRModule } = NativeModules;
 const eventEmitter = new NativeEventEmitter(AliyunASRModule);
+const NATIVE_EVENT_NAME_TO_EVENT: Record<string, ASREvent> = {
+  EVENT_VAD_START: ASREvent.VAD_START,
+  EVENT_VAD_TIMEOUT: ASREvent.VAD_TIMEOUT,
+  EVENT_VAD_END: ASREvent.VAD_END,
+  EVENT_WUW: ASREvent.WUW,
+  EVENT_WUW_TRUSTED: ASREvent.WUW_TRUSTED,
+  EVENT_WUW_CONFIRMED: ASREvent.WUW_CONFIRMED,
+  EVENT_WUW_REJECTED: ASREvent.WUW_REJECTED,
+  EVENT_WUW_END: ASREvent.WUW_END,
+  EVENT_ASR_PARTIAL_RESULT: ASREvent.ASR_PARTIAL_RESULT,
+  EVENT_ASR_RESULT: ASREvent.ASR_RESULT,
+  EVENT_ASR_ERROR: ASREvent.ASR_ERROR,
+  EVENT_DIALOG_ERROR: ASREvent.DIALOG_ERROR,
+  EVENT_ONESHOT_TIMEOUT: ASREvent.ONESHOT_TIMEOUT,
+  EVENT_DIALOG_RESULT: ASREvent.DIALOG_RESULT,
+  EVENT_WUW_HINT: ASREvent.WUW_HINT,
+  EVENT_VPR_RESULT: ASREvent.VPR_RESULT,
+  EVENT_TEXT2ACTION_DIALOG_RESULT: ASREvent.TEXT2ACTION_DIALOG_RESULT,
+  EVENT_TEXT2ACTION_ERROR: ASREvent.TEXT2ACTION_ERROR,
+  EVENT_ATTR_RESULT: ASREvent.ATTR_RESULT,
+  EVENT_MIC_ERROR: ASREvent.MIC_ERROR,
+  EVENT_DIALOG_EX: ASREvent.DIALOG_EX,
+  EVENT_WUW_ERROR: ASREvent.WUW_ERROR,
+  EVENT_BEFORE_CONNECTION: ASREvent.BEFORE_CONNECTION,
+  EVENT_SENTENCE_START: ASREvent.SENTENCE_START,
+  EVENT_SENTENCE_END: ASREvent.SENTENCE_END,
+  EVENT_SENTENCE_SEMANTICS: ASREvent.SENTENCE_SEMANTICS,
+  EVENT_RESULT_TRANSLATED: ASREvent.RESULT_TRANSLATED,
+  EVENT_TRANSCRIBER_COMPLETE: ASREvent.TRANSCRIBER_COMPLETE,
+  EVENT_FILE_TRANS_CONNECTED: ASREvent.FILE_TRANS_CONNECTED,
+  EVENT_FILE_TRANS_UPLOADED: ASREvent.FILE_TRANS_UPLOADED,
+  EVENT_FILE_TRANS_RESULT: ASREvent.FILE_TRANS_RESULT,
+  EVENT_FILE_TRANS_UPLOAD_PROGRESS: ASREvent.FILE_TRANS_UPLOAD_PROGRESS,
+  EVENT_TRANSCRIBER_STARTED: ASREvent.TRANSCRIBER_STARTED,
+  EVENT_ASR_STARTED: ASREvent.ASR_STARTED,
+  EVENT_FILE_TRANS_QUERY_RESULT: ASREvent.FILE_TRANS_QUERY_RESULT,
+  EVENT_WUW_START: ASREvent.WUW_START,
+  EVENT_WUW_DATA: ASREvent.WUW_DATA,
+};
 
 /**
  * 阿里云实时语音识别 SDK
@@ -48,7 +87,7 @@ export class AliyunASR {
    */
   async initialize(config: ASRInitConfig): Promise<void> {
     if (this.isInitialized) {
-      throw new Error('SDK 已经初始化');
+      await this.release();
     }
 
     const initParams = this.buildInitParams(config);
@@ -185,13 +224,14 @@ export class AliyunASR {
   }
 
   private buildInitParams(config: ASRInitConfig): string {
-    const params: any = {
+    const params: Record<string, unknown> = {
       app_key: config.appKey,
       token: config.token,
       sample_rate: config.sampleRate || 16000,
       format: config.format || 'opus',
       service_mode: 'kModeFullCloud',
       enable_vad: config.enableVad !== false,
+      enable_recorder_by_user: config.enableRecorderByUser ?? false,
       vocab_default_weight: 2,
     };
 
@@ -204,6 +244,7 @@ export class AliyunASR {
     }
 
     if (config.workspace) {
+      params.workspace = config.workspace;
       params.debug_path = config.workspace;
     }
 
@@ -233,8 +274,10 @@ export class AliyunASR {
   }
 
   private buildRecognitionParams(config: ASRInitConfig): string {
+    const serviceType = config.serviceType === 'speechTranscriber' ? 4 : 0;
+
     return JSON.stringify({
-      service_type: 4,
+      service_type: serviceType,
       nls_config: {
         enable_intermediate_result: true,
         sample_rate: config.sampleRate || 16000,
@@ -247,8 +290,13 @@ export class AliyunASR {
     const subscription = eventEmitter.addListener(
       'onASREvent',
       (nativeEvent: any) => {
+        const resolvedEvent =
+          (nativeEvent.eventName &&
+            NATIVE_EVENT_NAME_TO_EVENT[nativeEvent.eventName]) ??
+          nativeEvent.event;
         const eventData: ASREventData = {
-          event: nativeEvent.event,
+          event: resolvedEvent,
+          eventName: nativeEvent.eventName,
           result: nativeEvent.result,
           errorCode: nativeEvent.errorCode,
           errorMessage: nativeEvent.errorMessage,
@@ -258,7 +306,7 @@ export class AliyunASR {
         };
 
         // 触发特定事件类型的回调
-        const callbacks = this.eventCallbacks.get(nativeEvent.event.toString());
+        const callbacks = this.eventCallbacks.get(resolvedEvent.toString());
         if (callbacks) {
           callbacks.forEach((cb) => {
             try {

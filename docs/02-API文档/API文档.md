@@ -34,6 +34,8 @@ const asr = AliyunASR.getInstance();
 | config.sampleRate | number | 否 | 采样率 16000/8000，默认 16000 |
 | config.format | 'opus' \| 'pcm' | 否 | 音频编码格式，默认 'opus' |
 | config.enableVad | boolean | 否 | 是否启用 VAD，默认 true |
+| config.enableRecorderByUser | boolean | 否 | 是否由业务侧自己喂音频，默认 false |
+| config.serviceType | 'asr' \| 'speechTranscriber' | 否 | 服务类型，默认 'asr' |
 | config.logLevel | LogLevel | 否 | 日志级别，默认 INFO |
 | config.saveLog | boolean | 否 | 是否保存日志到文件，默认 false |
 
@@ -44,6 +46,7 @@ await asr.initialize({
   appKey: 'your-app-key',
   token: 'your-token',
   workspace: '/path/to/workspace',
+  serviceType: 'asr',
   logLevel: LogLevel.INFO,
 });
 ```
@@ -125,7 +128,7 @@ await asr.setParam('vocabulary_id', 'your-vocabulary-id');
 
 ```typescript
 await asr.setParams({
-  service_type: 4,
+  service_type: 0,
   nls_config: {
     enable_intermediate_result: true,
   },
@@ -221,18 +224,18 @@ VAD（语音活动检测）模式。
 
 | 值 | 名称 | 说明 |
 |----|------|------|
-| 9 | ASR_PARTIAL_RESULT | 中间识别结果 |
-| 10 | ASR_RESULT | 最终识别结果 |
-| 11 | ASR_ERROR | 识别错误 |
-| 40 | ASR_STARTED | 识别开始 |
+| 8 | ASR_PARTIAL_RESULT | 中间识别结果 |
+| 9 | ASR_RESULT | 最终识别结果 |
+| 10 | ASR_ERROR | 识别错误 |
+| 33 | ASR_STARTED | 识别开始 |
 
 #### 句子级事件
 
 | 值 | 名称 | 说明 |
 |----|------|------|
-| 28 | SENTENCE_START | 句子开始 |
-| 29 | SENTENCE_END | 句子结束 |
-| 30 | SENTENCE_SEMANTICS | 语义结果 |
+| 23 | SENTENCE_START | 句子开始 |
+| 24 | SENTENCE_END | 句子结束 |
+| 25 | SENTENCE_SEMANTICS | 语义结果 |
 
 #### 其他事件
 
@@ -275,6 +278,8 @@ interface ASRInitConfig {
   sampleRate?: number;      // 可选：采样率，默认 16000
   format?: 'opus' | 'pcm';  // 可选：音频格式，默认 opus
   enableVad?: boolean;      // 可选：启用 VAD，默认 true
+  enableRecorderByUser?: boolean; // 可选：是否业务侧自己喂音频，默认 false
+  serviceType?: 'asr' | 'speechTranscriber'; // 可选：服务类型，默认 asr
   logLevel?: LogLevel;      // 可选：日志级别，默认 INFO
   saveLog?: boolean;        // 可选：保存日志，默认 false
 }
@@ -286,6 +291,7 @@ interface ASRInitConfig {
 
 ```typescript
 interface ASRDialogParams {
+  token?: string;               // 可选：启动识别时刷新 Token
   vocabularyId?: string;        // 可选：热词词表 ID
   maxSentenceSilence?: number;  // 可选：句尾静默时长（毫秒）
 }
@@ -311,6 +317,7 @@ interface ASRResult {
 ```typescript
 interface ASREventData {
   event: ASREvent;
+  eventName?: string;
   result?: ASRResult;
   errorCode?: number;
   errorMessage?: string;

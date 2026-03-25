@@ -4,7 +4,7 @@
   "nui_config":{
     "service_mode":"kModeFullCloud",
     "log_level":"kLogLevelVerbose",
-    "enable_recorder_by_user":true,
+    "enable_recorder_by_user":false,
     "enable_dialog":false
   },
   "nls_config":{
